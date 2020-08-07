@@ -3,9 +3,8 @@
 
 #include "global.h"
 #include "problem.h"
-
 class CIndividual{
-public:
+    public:
 	CIndividual();
 	virtual ~CIndividual();
 
@@ -18,32 +17,28 @@ public:
 	void   obj_eval();
 	void   show_objective();
 	void   show_variable();
-
+	double  fitness;
     bool   operator<(const CIndividual &ind2);
-	bool   operator<<(const CIndividual &ind2);
+    bool   operator<<(const CIndividual &ind2);
     bool   operator==(const CIndividual &ind2);
     void   operator=(const CIndividual &ind2);
 };
-
 CIndividual::CIndividual()
 {
 	x_var = vector<double>(nvar, 0);
         y_obj = vector<double>(nobj, 0);
 	rank = 0;
 }
-
 CIndividual::~CIndividual()
 {
 
 }
-
 void CIndividual::rnd_init()
 {
     for(int n=0;n<nvar;n++)
         x_var[n] = vlowBound[n] + rnd_uni(&rnd_uni_init)*(vuppBound[n] - vlowBound[n]);    
 
 }
-
 void CIndividual::obj_eval()
 {
 
@@ -89,41 +84,34 @@ void CIndividual::obj_eval()
 
 
 }
-
-
 void CIndividual::show_objective()
 {
     for(int n=0; n<nobj; n++)
 		printf("%f ",y_obj[n]);
 	printf("\n");
 }
-
 void CIndividual::show_variable()
 {
     for(int n=0; n<nvar; n++)
 		printf("%f ",x_var[n]);
 	printf("\n");
 }
-
 void CIndividual::operator=(const CIndividual &ind2)
 {
 	x_var = ind2.x_var;
 	y_obj = ind2.y_obj;
 	rank  = ind2.rank;
 }
-
 bool CIndividual::operator<(const CIndividual &ind2)
 {
-	bool dominated = true;
+    bool dominated = true;
     for(int n=0; n<nobj; n++)
-	{
-		if(ind2.y_obj[n]<y_obj[n]) return false;
-	}
-	if(ind2.y_obj==y_obj) return false;
-	return dominated;
+    {
+        if(ind2.y_obj[n]<y_obj[n]) return false;
+    }
+    if(ind2.y_obj==y_obj) return false;
+    return dominated;
 }
-
-
 bool CIndividual::operator<<(const CIndividual &ind2)
 {
 	bool dominated = true;
@@ -134,58 +122,10 @@ bool CIndividual::operator<<(const CIndividual &ind2)
 	if(ind2.y_obj==y_obj) return false;
 	return dominated;
 }
-
 bool CIndividual::operator==(const CIndividual &ind2)
 {
 	if(ind2.y_obj==y_obj) return true;
 	else return false;
 }
-
-
-// defining subproblem 
-
-class CSubproblem  
-{
-public:
-	CSubproblem();
-	virtual ~CSubproblem();
-
-	void show();
-
-	CIndividual     indiv;     // best solution
-	CIndividual     saved;     // last solution
-	vector <double> namda;     // weight vector
-	vector <int>    table;     // neighbourhood table
-	
-	double          fitness;
-
-    void  operator=(const CSubproblem &sub2);
-};
-
-CSubproblem::CSubproblem()
-{
-    namda = vector<double>(nobj, 0);
-}
-
-CSubproblem::~CSubproblem(){
-}
-
-void CSubproblem::show()
-{
-   for(int n=0; n<namda.size(); n++)
-   {
-       printf("%f ",namda[n]);
-   }
-   printf("\n");
-}
-
-void CSubproblem::operator=(const CSubproblem &sub2)
-{
-    indiv  = sub2.indiv;
-	table  = sub2.table;
-	namda  = sub2.namda;
-}
-
-
 #endif
 

@@ -47,7 +47,7 @@ int		etax    = 20, 	etam    = 50;   // distribution indexes of crossover and mut
 double  realx,  realm,  realb = 0.9;    // crossover, mutation, selection probabilities
 
 double Di, Df, CR, F; // distance available of the hypersphere...
-int pops, niche;
+int nPop, nOffspring, nWeight;
 long long max_nfes;
 
 #endif

@@ -80,7 +80,9 @@ int main(int argc, char *argv[])
 	strcpy(strTestInstance, argv[index++]);
 	run= atoi(argv[index++]);
 	nobj = atoi(argv[index++]);
-	pops = atoi(argv[index++]);
+	nPop= atoi(argv[index++]);
+	nOffspring = 1;
+        nWeight = 100;
 	max_nfes= atoll(argv[index++]);
 	CR = atof(argv[index++]);
 	F = atof(argv[index++]);
