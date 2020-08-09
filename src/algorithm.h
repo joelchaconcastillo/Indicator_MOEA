@@ -2,6 +2,7 @@
 #define __EVOLUTION_H_
 
 #include <cfloat>
+#include <set>
 #include <queue>
 #include <map>
 #include <unordered_set>
@@ -48,13 +49,14 @@ class CMOEAD
         int worst_diversity_contribution();
    private:
 	vector <CIndividual> pool;
-	vector<int> child_idx, parent_idx;
+	vector<int> child_idx, parent_idx, inv_parent_idx;
 	vector<vector<double> > namda;     // weight vector
         vector<int> Np,Rp;//rank
 	vector<unordered_set<int> > Sp;//dominated indexes and inverse
-        vector<vector<int> > fronts;
-        vector<map<int, double> > diversity_contribution, R2_table;
-        vector<int> indicador_contribution;
+        vector<vector<int> > fronts ;
+        vector<map<int, double> > diversity_contribution;
+        vector<set<pair<double, int> > > R2_table;
+        vector<int> indicator_contribution;
         map<int, double> current_nearest_dist;
 
 	// algorithm parameters
@@ -107,11 +109,12 @@ void CMOEAD::init_population()
     sprintf(filename,"%s/ParameterSetting/Weight/W%dD_%d.dat", strpath, nobj, nWeight);
     std::ifstream readf(filename);
     namda.resize(nWeight, vector<double> (nobj, 0.0));
+    inv_parent_idx.assign(nPop+nOffspring, 0);
     for(int i=0; i< nWeight; i++)
-    {
 	// Load weight vectors
-	for(int j=0; j<nobj; j++) readf>>namda[i][j];
-    }
+	for(int j=0; j<nobj; j++)
+	 readf>>namda[i][j];
+
     for(int i=0; i< nPop+nOffspring; i++)
     {
 	       CIndividual ind;
@@ -123,12 +126,15 @@ void CMOEAD::init_population()
 		// Save in the population
 		pool.push_back(ind); 
 		if( i < nPop)
+		{
 		   parent_idx.push_back(i);
+		   inv_parent_idx[i]=i;
+		}
 		else
 		   child_idx.push_back(i);
 		nfes++;
-	}
-	readf.close( );
+     }
+     readf.close( );
 }
 bool CMOEAD::update_reference(CIndividual &ind)
 {
@@ -157,17 +163,20 @@ void CMOEAD::evol_population()
       CIndividual &child = pool[child_idx[i]];
       diff_evo_xoverA(pool[parent_idx[idx_target]], pool[parent_idx[idx1]], pool[parent_idx[idx2]], pool[parent_idx[idx3]], child, CR, F);
       // apply polynomial mutation
-      realmutation(child, 1.0/nvar);
+ //     realmutation(child, 1.0/nvar);
       child.obj_eval();
 
       // update the reference points and other solutions in the neighborhood or the whole population
       update_reference(child);
+
       dominance_information_new(child_idx[i]);
       diversity_information_new(child_idx[i]);
       indicator_information_new(child_idx[i]);
 
       //insert child..
       parent_idx.push_back(child_idx[i]);
+      int last_idx = (int) parent_idx.size()-1;
+      inv_parent_idx[parent_idx[last_idx]] = last_idx;
       //remove child..
       iter_swap(child_idx.begin()+i, child_idx.end()-1);
       child_idx.pop_back();
@@ -179,19 +188,22 @@ void CMOEAD::evol_population()
     //  }
     //  else
       {
-//         update_fronts(); 
-
-        dominance_information(); 
-         fading_idx = worst_indicator_contribution();
+        update_fronts(); 
+        fading_idx = worst_indicator_contribution();
       }
-//   cout << fading_idx<< " "<<parent_idx[fading_idx]<<endl;
       dominance_information_remove(parent_idx[fading_idx]); 
       diversity_information_remove(parent_idx[fading_idx]);
       indicator_information_remove(parent_idx[fading_idx]);
       child_idx.push_back(parent_idx[fading_idx]); 
+
       iter_swap(parent_idx.begin()+fading_idx, parent_idx.end()-1);
+      inv_parent_idx[parent_idx[fading_idx]] = fading_idx;
+
       parent_idx.pop_back();
     }
+//        indicator_information();
+//    for(auto i : parent_idx) cout << indicator_contribution[i]<< " ";
+//cout <<endl;
     //replacement_phase();
 
 }
@@ -203,7 +215,7 @@ void CMOEAD::exec_emo(int run)
 	seed = (seed + 23)%1377;
 	rnd_uni_init = -(long)seed;
 
-	// initialization
+	//initialization
 	nfes      = 0;
 	init_population();
 
@@ -228,6 +240,7 @@ void CMOEAD::exec_emo(int run)
 		   save_front(filename2);
 	//	}
 		bef=nfes;
+//getchar();
 	        nfes += nOffspring;
 	}
 	save_pos(filename1);
@@ -324,15 +337,15 @@ void CMOEAD::diversity_information()
 }
 void CMOEAD::indicator_information()
 {
-    R2_table.assign((int)namda.size(), map<int, double>());
-    indicador_contribution.assign(nPop + nOffspring, 0.0);
+    R2_table.assign((int)namda.size(), set<pair<double, int> >());//warning numeric overflow
+    indicator_contribution.assign(nPop + nOffspring, 0.0);
     for(int w = 0; w < namda.size(); w++)
     {
        for(auto idx:parent_idx)
-          R2_table[w][idx] = fitnessfunction(pool[idx].y_obj, namda[w]);
+          R2_table[w].insert(make_pair(fitnessfunction(pool[idx].y_obj, namda[w]), idx));
        auto best_R2_1 = R2_table[w].begin();
        auto best_R2_2 = R2_table[w].begin(); best_R2_2++;
-       indicador_contribution[best_R2_1->first] += (best_R2_2->second - best_R2_1->second);
+       indicator_contribution[best_R2_1->second] += (best_R2_2->first - best_R2_1->first);
     }
 }
 void CMOEAD::dominance_information_new(int idx_new)
@@ -361,13 +374,13 @@ void CMOEAD::diversity_information_new(int idx_new)
 }
 void CMOEAD::indicator_information_new(int idx_new)
 {
-   indicador_contribution.assign(nPop + nOffspring, 0.0);
+   indicator_contribution.assign(nPop + nOffspring, 0.0);
    for(int w = 0; w < namda.size(); w++)
    {
-      R2_table[w][idx_new] = fitnessfunction(pool[idx_new].y_obj, namda[w]);
+      R2_table[w].insert(make_pair(fitnessfunction(pool[idx_new].y_obj, namda[w]), idx_new));
       auto best_R2_1 = R2_table[w].begin();
       auto best_R2_2 = R2_table[w].begin(); best_R2_2++;
-      indicador_contribution[best_R2_1->first] += best_R2_2->second - best_R2_1->second;
+      indicator_contribution[best_R2_1->second] += best_R2_2->first - best_R2_1->first;
    }
 }
 void CMOEAD::dominance_information_remove(int ridx)
@@ -382,13 +395,14 @@ void CMOEAD::diversity_information_remove(int ridx)
 }
 void CMOEAD::indicator_information_remove(int ridx)
 {
-   indicador_contribution.assign(nPop + nOffspring, 0.0);
+   indicator_contribution.assign(nPop + nOffspring, 0.0);
    for(int w = 0; w < namda.size(); w++)
    {
-      R2_table[w][ridx] = DBL_MAX;
+//      R2_table[w][ridx] = DBL_MAX;
+      R2_table[w].erase(make_pair(fitnessfunction(pool[ridx].y_obj, namda[w]), ridx));
       auto best_R2_1 = R2_table[w].begin();
       auto best_R2_2 = R2_table[w].begin(); best_R2_2++;
-      indicador_contribution[best_R2_1->first] += best_R2_2->second - best_R2_1->second;
+      indicator_contribution[best_R2_1->second] += best_R2_2->first - best_R2_1->first;
    }
 }
 void CMOEAD::update_fronts()
@@ -419,19 +433,15 @@ void CMOEAD::update_fronts()
 }
 int CMOEAD::worst_indicator_contribution()
 {
-//cout <<"last front.. ";
-//for(auto i:fronts[fronts.size()-1])cout << i << " " ;
-//cout <<endl;
-  return distance(parent_idx.begin(),find(parent_idx.begin(), parent_idx.end(), fronts[fronts.size()-1][0]));
-
   int idx_worst = -1;
   double min_idx = DBL_MAX;
-  for(auto idx:fronts[fronts.size()-1])
+  vector<int> &last_front = fronts[fronts.size()-1];
+  for(auto idx:last_front)
   {
-     if( min_idx > indicador_contribution[idx])
+     if( min_idx > indicator_contribution[idx])
      {
-       min_idx = indicador_contribution[idx];
-      idx_worst = idx;
+       min_idx = indicator_contribution[idx];
+       idx_worst = inv_parent_idx[idx];
      }
   }
  return idx_worst;
