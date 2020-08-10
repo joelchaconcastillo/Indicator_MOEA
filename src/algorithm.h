@@ -19,13 +19,13 @@ class CMOEAD
 	CMOEAD();
 	virtual ~CMOEAD();
 
-	void init_population();                  // initialize the population
-	bool update_reference(CIndividual &ind);                 // update ideal point which is used in Tchebycheff or NBI method
+	void init_population();                
+	bool update_reference(CIndividual &ind); 
 	void replacement_phase();
-	void evol_population();                                      // DE-based recombination
+	void evol_population();                                    
 	// execute MOEAD
 	void exec_emo(int run);
-	void save_front(char savefilename[4024]);       // save the pareto front into files
+	void save_front(char savefilename[4024]); 
 	void save_pos(char savefilename[4024]);
 	void update_parameterD();
 	double distance_var( vector<double> &a, vector<double> &b);
@@ -56,7 +56,7 @@ class CMOEAD
         vector<vector<int> > fronts ;
         vector<map<int, double> > diversity_contribution;
         vector<set<pair<double, int> > > R2_table;
-        vector<int> indicator_contribution;
+        vector<double> indicator_contribution;
         map<int, double> current_nearest_dist;
 
 	// algorithm parameters
@@ -110,8 +110,8 @@ void CMOEAD::init_population()
     std::ifstream readf(filename);
     namda.resize(nWeight, vector<double> (nobj, 0.0));
     inv_parent_idx.assign(nPop+nOffspring, 0);
+    // Load weight vectors
     for(int i=0; i< nWeight; i++)
-	// Load weight vectors
 	for(int j=0; j<nobj; j++)
 	 readf>>namda[i][j];
 
@@ -139,7 +139,6 @@ void CMOEAD::init_population()
 bool CMOEAD::update_reference(CIndividual &ind)
 {
    bool changed = false;
-   //ind: child solution
    for(int n=0; n<nobj; n++)
    {
       if(ind.y_obj[n]<idealpoint[n])
@@ -163,49 +162,45 @@ void CMOEAD::evol_population()
       CIndividual &child = pool[child_idx[i]];
       diff_evo_xoverA(pool[parent_idx[idx_target]], pool[parent_idx[idx1]], pool[parent_idx[idx2]], pool[parent_idx[idx3]], child, CR, F);
       // apply polynomial mutation
- //     realmutation(child, 1.0/nvar);
+      realmutation(child, 1.0/nvar);
       child.obj_eval();
 
       // update the reference points and other solutions in the neighborhood or the whole population
-      update_reference(child);
+      update_reference(child); //O(M)
 
-      dominance_information_new(child_idx[i]);
-      diversity_information_new(child_idx[i]);
-      indicator_information_new(child_idx[i]);
+      dominance_information_new(child_idx[i]);// O(N log N)
+      diversity_information_new(child_idx[i]); //
+      indicator_information_new(child_idx[i]); // O(W log N)
 
       //insert child..
-      parent_idx.push_back(child_idx[i]);
-      int last_idx = (int) parent_idx.size()-1;
-      inv_parent_idx[parent_idx[last_idx]] = last_idx;
+      parent_idx.push_back(child_idx[i]); //O(1) amortized
+      int last_idx = (int) parent_idx.size()-1; //O(1)
+      inv_parent_idx[parent_idx[last_idx]] = last_idx; //O(1)
       //remove child..
-      iter_swap(child_idx.begin()+i, child_idx.end()-1);
-      child_idx.pop_back();
+      iter_swap(child_idx.begin()+i, child_idx.end()-1);//O(1)
+      child_idx.pop_back();//O(1)
+    }
+   for(int i=nOffspring-1; i >=0; i--)
+   {
       int fading_idx;      
       //penalize individuals
-    //  if( current_nearest_dist.begin()->second < D)
-    //  {
-    //    fading_idx = worst_diversity_contribution();
-    //  }
-    //  else
+//      if( current_nearest_dist.begin()->second < D)
+//      {
+//        fading_idx = worst_diversity_contribution();
+//      }
+//      else
       {
-        update_fronts(); 
-        fading_idx = worst_indicator_contribution();
+        update_fronts(); //O(N^2)
+        fading_idx = worst_indicator_contribution();//O(N)
       }
-      dominance_information_remove(parent_idx[fading_idx]); 
+      dominance_information_remove(parent_idx[fading_idx]); //O(N log N)
       diversity_information_remove(parent_idx[fading_idx]);
-      indicator_information_remove(parent_idx[fading_idx]);
-      child_idx.push_back(parent_idx[fading_idx]); 
-
-      iter_swap(parent_idx.begin()+fading_idx, parent_idx.end()-1);
-      inv_parent_idx[parent_idx[fading_idx]] = fading_idx;
-
-      parent_idx.pop_back();
+      indicator_information_remove(parent_idx[fading_idx]); //O(W * N log N)
+      child_idx.push_back(parent_idx[fading_idx]); //O(1)
+      iter_swap(parent_idx.begin()+fading_idx, parent_idx.end()-1); //O(1)
+      inv_parent_idx[parent_idx[fading_idx]] = fading_idx;//O(1)
+      parent_idx.pop_back();//O(1)
     }
-//        indicator_information();
-//    for(auto i : parent_idx) cout << indicator_contribution[i]<< " ";
-//cout <<endl;
-    //replacement_phase();
-
 }
 void CMOEAD::exec_emo(int run)
 {
@@ -237,7 +232,7 @@ void CMOEAD::exec_emo(int run)
 	//	{
 	//           accumulator -= 0.1*(max_nfes);
 	//	   save_pos(filename1);
-		   save_front(filename2);
+//		   save_front(filename2);
 	//	}
 		bef=nfes;
 //getchar();
@@ -257,12 +252,12 @@ void CMOEAD::save_front(char saveFilename[4024])
           fout<<pool[parent_idx[n]].y_obj[k]<<"  ";
        fout<<"\n";
     }
-    for(int n=0; n < nOffspring; n++)
-    {
-       for(int k=0;k<nobj;k++)
-          fout<<pool[child_idx[n]].y_obj[k]<<"  ";
-       fout<<"\n";
-    }
+//    for(int n=0; n < nOffspring; n++)
+//    {
+//       for(int k=0;k<nobj;k++)
+//          fout<<pool[child_idx[n]].y_obj[k]<<"  ";
+//       fout<<"\n";
+//    }
     fout.close();
 }
 
@@ -398,8 +393,9 @@ void CMOEAD::indicator_information_remove(int ridx)
    indicator_contribution.assign(nPop + nOffspring, 0.0);
    for(int w = 0; w < namda.size(); w++)
    {
-//      R2_table[w][ridx] = DBL_MAX;
-      R2_table[w].erase(make_pair(fitnessfunction(pool[ridx].y_obj, namda[w]), ridx));
+      auto it = R2_table[w].begin();
+      while( it->second != ridx ) it++;
+      R2_table[w].erase(it);
       auto best_R2_1 = R2_table[w].begin();
       auto best_R2_2 = R2_table[w].begin(); best_R2_2++;
       indicator_contribution[best_R2_1->second] += best_R2_2->first - best_R2_1->first;

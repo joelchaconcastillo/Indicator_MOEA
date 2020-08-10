@@ -1,28 +1,3 @@
-/*==========================================================================
-//  C++ Implementation of MOEA/D Based on Differential Evolution (DE) for Contest Multiobjective
-//  Problems in CEC2009
-//
-//  Author: Hui Li
-//
-//  See the details of MOEA/D-DE and test problems in the following papers
-//
-//  1) H. Li and Q. Zhang, Comparison Between NSGA-II and MOEA/D on a Set of Multiobjective Optimization
-//  Problems with Complicated Pareto Sets, Technical Report CES-476, Department of Computer Science,
-//  University of Essex, 2007
-//
-//  2) H. Li and Q. Zhang, Multiobjective Optimization Problems with Complicated Pareto Sets, MOEA/D and NSGA-II,
-//  IEEE Transaction on Evolutionary Computation, 2008, to appear.
-//
-//  If you have any questions about the codes, please contact
-//  Dr. Hui Li       at   hzl@cs.nott.ac.uk   or
-//  Dr. Qingfu Zhang at   qzhang@essex.ac.uk
-//
-//  Date: 14/NOV/2008
-//
-// ===========================================================================*/
-
-
-
 #include "algorithm.h"
 #include <omp.h>
 
@@ -82,7 +57,7 @@ int main(int argc, char *argv[])
 	nobj = atoi(argv[index++]);
 	nPop= atoi(argv[index++]);
 	nOffspring = 1;
-        nWeight = 100;
+        nWeight = 500;
 	max_nfes= atoll(argv[index++]);
 	CR = atof(argv[index++]);
 	F = atof(argv[index++]);
