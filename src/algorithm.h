@@ -176,6 +176,7 @@ void CMOEAD::evol_population()
 //cout <<endl;
    for(int i=nOffspring-1; i >=0; i--)
    {
+       update_fronts(); //O(N^2)
       int fading_idx;      
 	//cout << current_nearest_dist.first << " " << EXPAND(D)<< " "<< current_nearest_dist.second.first<< " "<<current_nearest_dist.second.second<<endl;
       if( current_nearest_dist.first < EXPAND(D))
@@ -184,7 +185,6 @@ void CMOEAD::evol_population()
       }
       else
       {
-        update_fronts(); //O(N^2)
         fading_idx = worst_indicator_contribution();//O(N)
       }
       dominance_information_remove(parent_idx[fading_idx]); //O(N log N)
@@ -456,8 +456,8 @@ int CMOEAD::worst_diversity_contribution()
 {
   int idx1 = current_nearest_dist.second.first;
   int idx2 = current_nearest_dist.second.second;
-  if( pool[idx1] < pool[idx2]) return  inv_parent_idx[idx2];
-  else if( pool[idx2] < pool[idx1]) return  inv_parent_idx[idx1];
+  if( Rp[idx1] < Rp[idx2]) return  inv_parent_idx[idx2];
+  else if( Rp[idx2] < Rp[idx1]) return  inv_parent_idx[idx1];
   else if(indicator_contribution[idx1] > indicator_contribution[idx2]) return inv_parent_idx[idx2];
   else if(indicator_contribution[idx2] > indicator_contribution[idx1]) return inv_parent_idx[idx1];
   else return inv_parent_idx[idx1];
