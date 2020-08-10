@@ -30,7 +30,6 @@ class CMOEAD
 	void save_pos(char savefilename[4024]);
 	void update_parameterD();
 	double distance_var( vector<double> &a, vector<double> &b);
-	double distance_obj( vector<double> &a, vector<double> &b);
 
         void dominance_information(); 
         void diversity_information();
@@ -78,16 +77,6 @@ void CMOEAD::update_parameterD()
 	double TElapsed = nfes;
         double TEnd = max_nfes;
         D = Di - Di * (TElapsed / (TEnd*Df));
-}
-double CMOEAD::distance_obj( vector<double> &a, vector<double> &b)
-{
-   double dist = 0 ;
-   for(int i = 0; i < a.size(); i++)
-   {
-       double factor = (a[i]-b[i]);
-       dist += factor*factor;
-   }
-   return sqrt(dist);
 }
 double CMOEAD::distance_var( vector<double> &a, vector<double> &b)
 {
@@ -170,22 +159,26 @@ void CMOEAD::evol_population()
       update_reference(child); //O(M)
 
       dominance_information_new(child_idx[i]);// O(N log N)
-      diversity_information_new(child_idx[i]); //
+      diversity_information_new(child_idx[i]); // O(N log N)
       indicator_information_new(child_idx[i]); // O(W log N)
 
       //insert child..
-      parent_idx.push_back(child_idx[i]); //O(1) amortized
+      parent_idx.push_back(child_idx[i]); //O(1) 
       int last_idx = (int) parent_idx.size()-1; //O(1)
       inv_parent_idx[parent_idx[last_idx]] = last_idx; //O(1)
       //remove child..
       iter_swap(child_idx.begin()+i, child_idx.end()-1);//O(1)
       child_idx.pop_back();//O(1)
     }
+
+//diversity_information();
+//for(auto i: parent_idx) cout << diversity_contribution[i].begin()->first<< ":"<<i<<" ";
+//cout <<endl;
    for(int i=nOffspring-1; i >=0; i--)
    {
       int fading_idx;      
-      //penalize individuals
-      if( EXPAND(current_nearest_dist.first) < EXPAND(D))
+	//cout << current_nearest_dist.first << " " << EXPAND(D)<< " "<< current_nearest_dist.second.first<< " "<<current_nearest_dist.second.second<<endl;
+      if( current_nearest_dist.first < EXPAND(D))
       {
         fading_idx = worst_diversity_contribution();
       }
@@ -321,13 +314,17 @@ void CMOEAD::dominance_information()
 void CMOEAD::diversity_information()
 {
    diversity_contribution.assign(nPop+nOffspring, set<pair<long long, int>>());
-
+   current_nearest_dist = make_pair(DBL_MAX, make_pair(-1, -1));
    for(auto i_idx:parent_idx)
    {
       for(auto j_idx:parent_idx)
       {
 	if( i_idx == j_idx) continue;
 	diversity_contribution[i_idx].insert(make_pair( EXPAND(distance_var(pool[i_idx].x_var, pool[j_idx].x_var)), j_idx));
+      }
+      if( current_nearest_dist.first > diversity_contribution[i_idx].begin()->first)
+      {
+        current_nearest_dist = make_pair(diversity_contribution[i_idx].begin()->first, make_pair(i_idx,diversity_contribution[i_idx].begin()->second));
       }
    }   
 }
@@ -367,12 +364,15 @@ void CMOEAD::diversity_information_new(int idx_new)
    current_nearest_dist = make_pair(DBL_MAX, make_pair(-1, -1));
    for(auto idx:parent_idx)
    {
-      diversity_contribution[idx].insert(make_pair( EXPAND(distance_var(pool[idx].x_var, pool[idx_new].x_var)), idx_new));
+      long long dist_l =  EXPAND(distance_var(pool[idx].x_var, pool[idx_new].x_var));
+      diversity_contribution[idx].insert(make_pair(dist_l, idx_new));
+      diversity_contribution[idx_new].insert(make_pair( dist_l, idx));
       if( current_nearest_dist.first > diversity_contribution[idx].begin()->first)
       {
         current_nearest_dist = make_pair(diversity_contribution[idx].begin()->first, make_pair(idx,diversity_contribution[idx].begin()->second));
       }
    }
+  //cout << current_nearest_dist.first <<endl;
 }
 void CMOEAD::indicator_information_new(int idx_new)
 {
@@ -396,6 +396,7 @@ void CMOEAD::diversity_information_remove(int ridx)
   {
      diversity_contribution[p_idx].erase(make_pair( EXPAND(distance_var(pool[p_idx].x_var, pool[ridx].x_var)), ridx));
   }
+     diversity_contribution[ridx].clear();
 }
 void CMOEAD::indicator_information_remove(int ridx)
 {
@@ -453,7 +454,7 @@ int CMOEAD::worst_indicator_contribution()
 }
 int CMOEAD::worst_diversity_contribution()
 {
-  if( pool[current_nearest_dist.second.first] < pool[current_nearest_dist.second.second]) return  current_nearest_dist.second.second;
-  return current_nearest_dist.second.first;
+  if( pool[current_nearest_dist.second.first] < pool[current_nearest_dist.second.second]) return  inv_parent_idx[current_nearest_dist.second.second];
+  return inv_parent_idx[current_nearest_dist.second.first];
 }
 #endif
