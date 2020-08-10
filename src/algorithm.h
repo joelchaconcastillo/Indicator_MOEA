@@ -366,7 +366,7 @@ void CMOEAD::diversity_information_new(int idx_new)
    current_nearest_dist = make_pair(DBL_MAX, make_pair(-1, -1));
    for(auto idx:parent_idx)
    {
-      long long dist_l =  EXPAND(distance_var(pool[idx].x_var, pool[idx_new].x_var));
+      double dist_l =  EXPAND(distance_var(pool[idx].x_var, pool[idx_new].x_var));
       diversity_contribution[idx].insert(make_pair(dist_l, idx_new));
       diversity_contribution[idx_new].insert(make_pair( dist_l, idx));
       if( current_nearest_dist.first > diversity_contribution[idx].begin()->first)
