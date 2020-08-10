@@ -12,6 +12,7 @@
 #include "common.h"
 #include "individual.h"
 
+#define EXPAND(n)((long long)(n*1e6))
 class CMOEAD
 {
 
@@ -54,10 +55,10 @@ class CMOEAD
         vector<int> Np,Rp;//rank
 	vector<unordered_set<int> > Sp;//dominated indexes and inverse
         vector<vector<int> > fronts ;
-        vector<map<int, double> > diversity_contribution;
         vector<set<pair<double, int> > > R2_table;
+        vector<set<pair<long long, int> > > diversity_contribution;
         vector<double> indicator_contribution;
-        map<int, double> current_nearest_dist;
+        pair<double, pair<int, int> > current_nearest_dist;
 
 	// algorithm parameters
 	long long nfes;          //  the number of function evluations
@@ -184,17 +185,17 @@ void CMOEAD::evol_population()
    {
       int fading_idx;      
       //penalize individuals
-//      if( current_nearest_dist.begin()->second < D)
-//      {
-//        fading_idx = worst_diversity_contribution();
-//      }
-//      else
+      if( EXPAND(current_nearest_dist.first) < EXPAND(D))
+      {
+        fading_idx = worst_diversity_contribution();
+      }
+      else
       {
         update_fronts(); //O(N^2)
         fading_idx = worst_indicator_contribution();//O(N)
       }
       dominance_information_remove(parent_idx[fading_idx]); //O(N log N)
-      diversity_information_remove(parent_idx[fading_idx]);
+      diversity_information_remove(parent_idx[fading_idx]); //O(N log N)
       indicator_information_remove(parent_idx[fading_idx]); //O(W * N log N)
       child_idx.push_back(parent_idx[fading_idx]); //O(1)
       iter_swap(parent_idx.begin()+fading_idx, parent_idx.end()-1); //O(1)
@@ -228,12 +229,12 @@ void CMOEAD::exec_emo(int run)
 		update_parameterD();
 		evol_population();
 		accumulator += nfes - bef ;
-        //        if(accumulator > 0.1*(max_nfes)  )
-	//	{
-	//           accumulator -= 0.1*(max_nfes);
+                if(accumulator > 0.1*(max_nfes)  )
+		{
+	           accumulator -= 0.1*(max_nfes);
 	//	   save_pos(filename1);
-//		   save_front(filename2);
-	//	}
+		   save_front(filename2);
+		}
 		bef=nfes;
 //getchar();
 	        nfes += nOffspring;
@@ -319,15 +320,15 @@ void CMOEAD::dominance_information()
 }
 void CMOEAD::diversity_information()
 {
-   diversity_contribution.assign(nPop+nOffspring, map<int, double>());
+   diversity_contribution.assign(nPop+nOffspring, set<pair<long long, int>>());
+
    for(auto i_idx:parent_idx)
    {
       for(auto j_idx:parent_idx)
       {
 	if( i_idx == j_idx) continue;
-	diversity_contribution[i_idx][j_idx] = distance_var(pool[i_idx].x_var, pool[j_idx].x_var);
+	diversity_contribution[i_idx].insert(make_pair( EXPAND(distance_var(pool[i_idx].x_var, pool[j_idx].x_var)), j_idx));
       }
-      current_nearest_dist[i_idx] = diversity_contribution[i_idx].begin()->second;
    }   
 }
 void CMOEAD::indicator_information()
@@ -363,9 +364,15 @@ void CMOEAD::dominance_information_new(int idx_new)
 }
 void CMOEAD::diversity_information_new(int idx_new)
 {
+   current_nearest_dist = make_pair(DBL_MAX, make_pair(-1, -1));
    for(auto idx:parent_idx)
-      diversity_contribution[idx][idx_new] = distance_var(pool[idx].x_var, pool[idx_new].x_var);
-   current_nearest_dist[idx_new] = diversity_contribution[idx_new].begin()->second;
+   {
+      diversity_contribution[idx].insert(make_pair( EXPAND(distance_var(pool[idx].x_var, pool[idx_new].x_var)), idx_new));
+      if( current_nearest_dist.first > diversity_contribution[idx].begin()->first)
+      {
+        current_nearest_dist = make_pair(diversity_contribution[idx].begin()->first, make_pair(idx,diversity_contribution[idx].begin()->second));
+      }
+   }
 }
 void CMOEAD::indicator_information_new(int idx_new)
 {
@@ -385,8 +392,10 @@ void CMOEAD::dominance_information_remove(int ridx)
 }
 void CMOEAD::diversity_information_remove(int ridx)
 {
-  for(auto p_idx:parent_idx)  diversity_contribution[p_idx][ridx] = DBL_MAX;
-  current_nearest_dist[ridx] = DBL_MAX;
+  for(auto p_idx:parent_idx)
+  {
+     diversity_contribution[p_idx].erase(make_pair( EXPAND(distance_var(pool[p_idx].x_var, pool[ridx].x_var)), ridx));
+  }
 }
 void CMOEAD::indicator_information_remove(int ridx)
 {
@@ -444,14 +453,7 @@ int CMOEAD::worst_indicator_contribution()
 }
 int CMOEAD::worst_diversity_contribution()
 {
-  unordered_set<int> penalized;
-   
-  for(auto i = current_nearest_dist.begin(); i != current_nearest_dist.end(); i++)
-  {
-     penalized.insert(i->first);
-     if( i->second != current_nearest_dist.begin()->second) break;
-  }
-   
- return 0;
+  if( pool[current_nearest_dist.second.first] < pool[current_nearest_dist.second.second]) return  current_nearest_dist.second.second;
+  return current_nearest_dist.second.first;
 }
 #endif
