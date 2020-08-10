@@ -15,6 +15,6 @@ GetOptions (
 my $i;
 for($i = $ini; $i <= $fin; $i++)
 {
-	#print "n-$i $Cores\n";
-	print "c-1-$i $Cores\n";
+	print "n-$i $Cores\n";
+	#print "c-1-$i $Cores\n";
 }
