@@ -12,7 +12,8 @@
 #include "common.h"
 #include "individual.h"
 
-#define EXPAND(n)((long long)(n*1e6))
+//#define EXPAND(n)((long long)(n*1e6))
+#define EXPAND(n)(n)
 class CMOEAD
 {
 
@@ -55,7 +56,7 @@ class CMOEAD
 	vector<unordered_set<int> > Sp;//dominated indexes and inverse
         vector<vector<int> > fronts ;
         vector<set<pair<double, int> > > R2_table;
-        vector<set<pair<long long, int> > > diversity_contribution;
+        vector<set<pair<double, int> > > diversity_contribution;
         vector<double> indicator_contribution;
         pair<double, pair<int, int> > current_nearest_dist;
 
@@ -313,7 +314,8 @@ void CMOEAD::dominance_information()
 }
 void CMOEAD::diversity_information()
 {
-   diversity_contribution.assign(nPop+nOffspring, set<pair<long long, int>>());
+   //diversity_contribution.assign(nPop+nOffspring, set<pair<long long, int>>());
+   diversity_contribution.assign(nPop+nOffspring, set<pair<double, int>>());
    current_nearest_dist = make_pair(DBL_MAX, make_pair(-1, -1));
    for(auto i_idx:parent_idx)
    {
@@ -394,7 +396,10 @@ void CMOEAD::diversity_information_remove(int ridx)
 {
   for(auto p_idx:parent_idx)
   {
-     diversity_contribution[p_idx].erase(make_pair( EXPAND(distance_var(pool[p_idx].x_var, pool[ridx].x_var)), ridx));
+	auto it = diversity_contribution[p_idx].begin();
+        while(it->second != ridx) it++;
+       diversity_contribution[p_idx].erase(it);
+     //diversity_contribution[p_idx].erase(make_pair( EXPAND(distance_var(pool[p_idx].x_var, pool[ridx].x_var)), ridx));
   }
      diversity_contribution[ridx].clear();
 }
