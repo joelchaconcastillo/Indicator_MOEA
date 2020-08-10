@@ -208,7 +208,7 @@ void CMOEAD::exec_emo(int run)
 	nfes      = 0;
 	init_population();
 
-	sprintf(filename1,"%s/POS/POS_R2_EMOA%s_RUN%d_seed_%d_nobj_%d_nvar_%d_DI_%lf_DF_%lf_CR_%lf_F_%lf",strpath, strTestInstance,run, seed, nobj, nvar, Di/sqrt(nvar), Df, CR, F);
+	sprintf(filename1,"%s/POS/POS_R2_EMOA_%s_RUN%d_seed_%d_nobj_%d_nvar_%d_DI_%lf_DF_%lf_CR_%lf_F_%lf",strpath, strTestInstance,run, seed, nobj, nvar, Di/sqrt(nvar), Df, CR, F);
 	sprintf(filename2,"%s/POF/POF_R2_EMOA_%s_RUN%d_seed_%d_nobj_%d_nvar_%d_DI_%lf_DF_%lf_CR_%lf_F_%lf",strpath, strTestInstance,run, seed, nobj, nvar, Di/sqrt(nvar), Df, CR, F);
         long long current = nfes;
 	long long accumulator = 0, bef = nfes;
@@ -454,7 +454,12 @@ int CMOEAD::worst_indicator_contribution()
 }
 int CMOEAD::worst_diversity_contribution()
 {
-  if( pool[current_nearest_dist.second.first] < pool[current_nearest_dist.second.second]) return  inv_parent_idx[current_nearest_dist.second.second];
-  return inv_parent_idx[current_nearest_dist.second.first];
+  int idx1 = current_nearest_dist.second.first;
+  int idx2 = current_nearest_dist.second.second;
+  if( pool[idx1] < pool[idx2]) return  inv_parent_idx[idx2];
+  else if( pool[idx2] < pool[idx1]) return  inv_parent_idx[idx1];
+  else if(indicator_contribution[idx1] > indicator_contribution[idx2]) return inv_parent_idx[idx2];
+  else if(indicator_contribution[idx2] > indicator_contribution[idx1]) return inv_parent_idx[idx1];
+  else return inv_parent_idx[idx1];
 }
 #endif
