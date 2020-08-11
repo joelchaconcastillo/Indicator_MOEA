@@ -60,6 +60,7 @@ class CMOEAD
         vector<double> indicator_contribution;
         pair<double, pair<int, int> > current_nearest_dist;
 
+        vector<pair<double, int> > min_obj;
 	// algorithm parameters
 	long long nfes;          //  the number of function evluations
 	double	D;	//Current minimum distance
@@ -230,7 +231,6 @@ void CMOEAD::exec_emo(int run)
 		   save_front(filename2);
 		}
 		bef=nfes;
-//getchar();
 	        nfes += nOffspring;
 	}
 	save_pos(filename1);
@@ -247,12 +247,6 @@ void CMOEAD::save_front(char saveFilename[4024])
           fout<<pool[parent_idx[n]].y_obj[k]<<"  ";
        fout<<"\n";
     }
-//    for(int n=0; n < nOffspring; n++)
-//    {
-//       for(int k=0;k<nobj;k++)
-//          fout<<pool[child_idx[n]].y_obj[k]<<"  ";
-//       fout<<"\n";
-//    }
     fout.close();
 }
 
@@ -276,6 +270,7 @@ void CMOEAD::dominance_information()
    Np.assign(nPop+nOffspring, 0);
    Rp.assign(nPop+nOffspring, 0);
    fronts.assign(1, vector<int>());
+   min_obj.assign(nobj, make_pair(DBL_MAX, -1));
    int rank = 0;
    for(auto pidx1:parent_idx)
    {
@@ -289,6 +284,8 @@ void CMOEAD::dominance_information()
       {
          fronts[rank].push_back(pidx1);
 	 Rp[pidx1]=rank;
+         for(int m = 0; m < nobj; m++)
+	    min_obj[m] = min(min_obj[m], make_pair(pool[pidx1].y_obj[m], pidx1));
       }
    }
    vector<int> current_Np = Np;
@@ -422,7 +419,18 @@ void CMOEAD::update_fronts()
    vector<int> current_Np = Np;
    fronts.assign(1, vector<int>());
    int rank = 0;
-   for(auto idx:parent_idx) if(current_Np[idx]==0) fronts[rank].push_back(idx);
+   min_obj.assign(nobj, make_pair(DBL_MAX, -1));
+   for(auto idx:parent_idx)
+   {
+      if(current_Np[idx]==0)
+      {
+        fronts[rank].push_back(idx);
+        Rp[idx] = rank;
+
+        for(int m = 0; m < nobj; m++)
+	 min_obj[m] = min(min_obj[m], make_pair(pool[idx].y_obj[m], idx));
+      }
+   }
    while(true)
    {
       vector<int> next_front;
@@ -462,6 +470,11 @@ int CMOEAD::worst_diversity_contribution()
 {
   int idx1 = current_nearest_dist.second.first;
   int idx2 = current_nearest_dist.second.second;
+//  for(int i = 0; i < nobj; i++)
+//     {
+//	if( idx1 == min_obj[i].second) return inv_parent_idx[idx2];
+//	if( idx2 == min_obj[i].second) return inv_parent_idx[idx1];
+//   }
   if( Rp[idx1] < Rp[idx2]) return  inv_parent_idx[idx2];
   else if( Rp[idx2] < Rp[idx1]) return  inv_parent_idx[idx1];
   else if(indicator_contribution[idx1] > indicator_contribution[idx2]) return inv_parent_idx[idx2];
