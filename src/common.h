@@ -54,11 +54,11 @@ double fitnessfunction(vector <double> &y_obj, vector <double> &namda)
 		double diff = fabs(y_obj[n] - idealpoint[n]);
 		double feval;
 		if(namda[n]==0) 
-			feval = 0.0001*diff;
-			//feval = diff/0.0001;
+			//feval = 0.0001*diff;
+			feval = diff/0.0001;
 		else
-			feval = diff*namda[n];
-			//feval = diff/namda[n];
+			//feval = diff*namda[n];
+			feval = diff/namda[n];
 		if(feval>max_fun) max_fun = feval;
 	}
 	return max_fun;
