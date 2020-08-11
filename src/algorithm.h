@@ -396,8 +396,9 @@ void CMOEAD::diversity_information_remove(int ridx)
 {
   for(auto p_idx:parent_idx)
   {
+	if( p_idx == ridx) continue;
 	auto it = diversity_contribution[p_idx].begin();
-        while(it->second != ridx) it++;
+        while(it->second != ridx)it++;
        diversity_contribution[p_idx].erase(it);
      //diversity_contribution[p_idx].erase(make_pair( EXPAND(distance_var(pool[p_idx].x_var, pool[ridx].x_var)), ridx));
   }
