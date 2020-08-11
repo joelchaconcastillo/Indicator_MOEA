@@ -470,11 +470,11 @@ int CMOEAD::worst_diversity_contribution()
 {
   int idx1 = current_nearest_dist.second.first;
   int idx2 = current_nearest_dist.second.second;
-//  for(int i = 0; i < nobj; i++)
-//     {
-//	if( idx1 == min_obj[i].second) return inv_parent_idx[idx2];
-//	if( idx2 == min_obj[i].second) return inv_parent_idx[idx1];
-//   }
+  for(int i = 0; i < nobj; i++)
+     {
+	if( idx1 == min_obj[i].second) return inv_parent_idx[idx2];
+	if( idx2 == min_obj[i].second) return inv_parent_idx[idx1];
+   }
   if( Rp[idx1] < Rp[idx2]) return  inv_parent_idx[idx2];
   else if( Rp[idx2] < Rp[idx1]) return  inv_parent_idx[idx1];
   else if(indicator_contribution[idx1] > indicator_contribution[idx2]) return inv_parent_idx[idx2];
