@@ -19,7 +19,7 @@ my @DI = ("0.4");#, "0.2", "0.4", "0.6", "0.8", "1.0");
 foreach my $Di(@DI)
 {
 	#   my $Di = 0.4;
-   my $Df = 0.8;
+   my $Df = 0.5;
    my $pops=100;
    my $max_nfes=25000000;
    my $CR = 0.0;
