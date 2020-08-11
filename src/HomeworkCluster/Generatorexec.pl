@@ -58,7 +58,7 @@ foreach my $Di(@DI)
          {
          	my $nvar;
          	
-         	for(my $nobj = 2; $nobj <=3; $nobj++)
+         	for(my $nobj = 2; $nobj <=2; $nobj++)
          	{
          	   my $k =4;# 2*($nobj-1);
          	   my $l =20;# 24-$k;
