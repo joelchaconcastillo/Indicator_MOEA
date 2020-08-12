@@ -81,7 +81,7 @@ void CIndividual::obj_eval()
 	//world problems...
         if(!strcmp("RWP1", strTestInstance))  RWP1(y_obj, x_var);
         if(!strcmp("RWP2", strTestInstance))  RWP2(y_obj, x_var);
-
+         y_obj[0] *=4.0;
 
 }
 void CIndividual::show_objective()
