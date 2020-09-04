@@ -32,10 +32,14 @@ class CMOEAD
 	void update_parameterD();
 	double distance_var( vector<double> &a, vector<double> &b);
 
+        void select_extremes(vector<int> &candidates, vector<unordered_set> &selected);
         void dominance_information(); 
         void update_fronts(); 
 	void dominance_information_new(int idx_new);
 	void dominance_information_remove(int new_child_idx);
+
+
+        void table_fitness_information(vector<int> &candidates, vector<vector<int> > &table_fitness);
    private:
 	vector <CIndividual> pool;
 	vector<int> child_idx, parent_idx, inv_parent_idx;
@@ -43,7 +47,7 @@ class CMOEAD
         vector<int> Np,Rp;//rank
 	vector<unordered_set<int> > Sp;//dominated indexes and inverse
         vector<vector<int> > fronts ;
-
+        vector<vector<double > > table_fitness;
 	// algorithm parameters
 	long long nfes;          //  the number of function evluations
 	double	D;	//Current minimum distance
@@ -75,44 +79,25 @@ double CMOEAD::distance_var( vector<double> &a, vector<double> &b)
 }
 void CMOEAD::replacement_phase()
 {
-
-   //non-dominance information
-
+   unordered_set<int> selected, penalized;
    vector<int> candidates(pool.size());
    for(int idx = 0; idx < candidates.size(); idx++) candidates[idx]=idx; 
    parent_idx.clear();
-//   candidates.insert(candidates.end(), child_idx.begin(), child_idx.end());
-   
-  //select the first non-dominated individuals..... m - extreme points
-  unordered_set<int> selected;
-  for(int m = 0; m < nobj; m++)
-  {
-     pair<double, int> b_best =  make_pair(DBL_MAX, 10000);
-     for(auto idx:candidates)
+
+   table_fitness_information();
+   dominance_information();
+   select_extremes(candidates, selected);
+  while( selected.size() < nPop)
+  {  
+     //penalize nearest individuals + remove_dominance_information
+     if( candidates.empty())
      {
-        if( pool[idx].y_obj[m] < b_best.first ) b_best =  make_pair(pool[idx].y_obj[m], idx);
+       //get the farthest penalized individual and move to candidates
+       continue;
      }
-     if( selected.find(b_best.second) == selected.end())
-         selected.insert(b_best.second);
+     //get list of current-zero dominance count....
+     //get list of R2 contribution
   }
-  
-  //getting R2-contribution of each individual...
-  vector<vector<double > > table_fitness( nWeight, vector<double> ((int)candidates.size()))
-  vector<double> Contribution_R2((int)candidates.size()), 0.0;
-  vector<set<pair<double, int> > > w_set((int)candidates.size());
-  for(int w_id = 0; w_id < nWeight; w_id++)
-  {
-     for(auto idx:candidates)
-     {
-        double gx = fitnessfunction(pool[idx].y_obj, namda[w_idx]);
-        table_fitness[w_id][idx] = gx;
-        w_set[w_id].insert(make_pair(gx, idx));
-     }
-    Contribution_R2[w_set[w_id].begin()->second] += ( next(w_set[w_id],1)->first - next(w_set[w_id],0)->first );
-  }
-
-
-
 }
 void CMOEAD::init_population()
 {
@@ -122,6 +107,8 @@ void CMOEAD::init_population()
     sprintf(filename,"%s/ParameterSetting/Weight/W%dD_%d.dat", strpath, nobj, nWeight);
     std::ifstream readf(filename);
     namda.resize(nWeight, vector<double> (nobj, 0.0));
+
+    table_fitness.assign(nWeight, vector<double> ((int)candidates.size()));
     // Load weight vectors
     for(int i=0; i< nWeight; i++)
 	for(int j=0; j<nobj; j++)
@@ -324,25 +311,52 @@ void CMOEAD::dominance_information()
 	 Rp[pidx1]=rank;
       }
    }
-   vector<int> current_Np = Np;
-   while(true)
-   {
-      vector<int> next_front;
-      for(auto idx:fronts[rank])
-      {
-	for(auto idx_dominated:Sp[idx])
-        {
-	  current_Np[idx_dominated]--;
-          if(current_Np[idx_dominated]  == 0) 
-          {
-	     next_front.push_back(idx_dominated);
-	     Rp[idx_dominated] = rank+1;
-          }
-        }
-      }
-      if(next_front.empty()) break;
-      fronts.push_back(next_front);
-      rank++;
-   }
+//   vector<int> current_Np = Np;
+//   while(true)
+//   {
+//      vector<int> next_front;
+//      for(auto idx:fronts[rank])
+//      {
+//	for(auto idx_dominated:Sp[idx])
+//        {
+//	  current_Np[idx_dominated]--;
+//          if(current_Np[idx_dominated]  == 0) 
+//          {
+//	     next_front.push_back(idx_dominated);
+//	     Rp[idx_dominated] = rank+1;
+//          }
+//        }
+//      }
+//      if(next_front.empty()) break;
+//      fronts.push_back(next_front);
+//      rank++;
+//   }
+}
+void CMOEAD::select_extremes(vector<int> &candidates, vector<unordered_set> &selected)
+{
+ for(int m = 0; m < nobj; m++)
+  {
+     pair<double, int> b_best =  make_pair(DBL_MAX, 10000);
+     for(int idx = 0; idx < candidates.size(); idx++)
+        if( pool[candidates[idx]].y_obj[m] < b_best.first ) b_best =  make_pair(pool[candidates[idx]].y_obj[m], idx);
+     if( selected.find(candidates[b_best.second])  == selected.end() )
+     {
+        selected.insert(candidates[b_best.second]);
+        iter_swap(candidates.begin()+b_best.second, candidates.end()-1);
+        candidates.pop_back();
+     }
+  }
+}
+void CMOEAD::table_fitness_information()
+{
+  //getting R2-contribution of each individual...
+  for(int w_id = 0; w_id < nWeight; w_id++)
+  {
+     for(int idx = 0; idx < pool.size(); idx++)
+     {
+        table_fitness[w_id][idx] = fitnessfunction(pool[idx].y_obj, namda[w_idx]);
+     }
+  }
+
 }
 #endif
