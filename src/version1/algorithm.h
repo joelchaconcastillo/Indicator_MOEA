@@ -411,6 +411,7 @@ void CMOEAD::indicator_information_remove(int ridx)
       auto it = R2_table[w].begin();
       while( it->second != ridx ) it++;
       R2_table[w].erase(it);
+      
       auto best_R2_1 = R2_table[w].begin();
       auto best_R2_2 = R2_table[w].begin(); best_R2_2++;
       indicator_contribution[best_R2_1->second] += best_R2_2->first - best_R2_1->first;

@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 	run= atoi(argv[index++]);
 	nobj = atoi(argv[index++]);
 	nPop= atoi(argv[index++]);
-	nOffspring = 1;
+	nOffspring = 100;
         nWeight = 100;
 	max_nfes= atoll(argv[index++]);
 	CR = atof(argv[index++]);

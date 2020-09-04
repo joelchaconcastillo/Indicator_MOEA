@@ -59,9 +59,9 @@ CMOEAD::~CMOEAD()
 }
 void CMOEAD::update_parameterD()
 {
-	double TElapsed = nfes;
-        double TEnd = max_nfes;
-        D = Di - Di * (TElapsed / (TEnd*Df));
+      double TElapsed = nfes, TEnd = max_nfes;
+      D = Di - Di * (TElapsed / (TEnd*Df));
+      D = max(D, 0.0);
 }
 double CMOEAD::distance_var( vector<double> &a, vector<double> &b)
 {
@@ -75,19 +75,44 @@ double CMOEAD::distance_var( vector<double> &a, vector<double> &b)
 }
 void CMOEAD::replacement_phase()
 {
-   vector<int> candidates = parent_idx;
-   vector< set<>> 
-   parent_idx.clear();
-   candidates.insert(candidates.end(), child_idx.begin(), child_idx.end());
-   
-   pair<double, int> idx_R2(DBL_MIN, -1);
-   for(auto idx:candidates)
-   {
-      
-      idx_R2 = max(idx_R2, fitnessfunction(pool[idx]).y_obj,  )	
-   }
 
+   //non-dominance information
+
+   vector<int> candidates(pool.size());
+   for(int idx = 0; idx < candidates.size(); idx++) candidates[idx]=idx; 
+   parent_idx.clear();
+//   candidates.insert(candidates.end(), child_idx.begin(), child_idx.end());
    
+  //select the first non-dominated individuals..... m - extreme points
+  unordered_set<int> selected;
+  for(int m = 0; m < nobj; m++)
+  {
+     pair<double, int> b_best =  make_pair(DBL_MAX, 10000);
+     for(auto idx:candidates)
+     {
+        if( pool[idx].y_obj[m] < b_best.first ) b_best =  make_pair(pool[idx].y_obj[m], idx);
+     }
+     if( selected.find(b_best.second) == selected.end())
+         selected.insert(b_best.second);
+  }
+  
+  //getting R2-contribution of each individual...
+  vector<vector<double > > table_fitness( nWeight, vector<double> ((int)candidates.size()))
+  vector<double> Contribution_R2((int)candidates.size()), 0.0;
+  vector<set<pair<double, int> > > w_set((int)candidates.size());
+  for(int w_id = 0; w_id < nWeight; w_id++)
+  {
+     for(auto idx:candidates)
+     {
+        double gx = fitnessfunction(pool[idx].y_obj, namda[w_idx]);
+        table_fitness[w_id][idx] = gx;
+        w_set[w_id].insert(make_pair(gx, idx));
+     }
+    Contribution_R2[w_set[w_id].begin()->second] += ( next(w_set[w_id],1)->first - next(w_set[w_id],0)->first );
+  }
+
+
+
 }
 void CMOEAD::init_population()
 {
