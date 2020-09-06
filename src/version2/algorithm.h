@@ -31,15 +31,19 @@ class CMOEAD
 	void save_pos(char savefilename[4024]);
 	void update_parameterD();
 	double distance_var( vector<double> &a, vector<double> &b);
-
-        void select_extremes(vector<int> &candidates, vector<unordered_set> &selected);
+	void select_extremes(unordered_set<int> &candidates, unordered_set<int> &survivors, unordered_set<int> &survivors_front);
+	void penalization(unordered_set<int> &candidates, unordered_set<int> &penalized, vector<double> &distances, unordered_set<int> &candidates_front);
         void dominance_information(); 
         void update_fronts(); 
+	void pick_penalized(unordered_set<int> &penalized, unordered_set<int> &survivors, vector<double> &distances);
+	void R2_contribution_subset(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors, unordered_set<int> &survivors_front, unordered_set<int> &penalized, vector<set<pair<double, int> > > &survivors_weight, vector<double> &distances);
 	void dominance_information_new(int idx_new);
-	void dominance_information_remove(int new_child_idx);
+	void dominance_information_remove(int rm_idx, unordered_set<int> &current_front);
+	void lowest_front(unordered_set<int> &candidates, unordered_set<int> &candidates_front);
+	void update_lowest_front(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors_front);
+	void diversity_information(unordered_set<int> &survivors, unordered_set<int> &penalized, vector<double> &distances);
 
-
-        void table_fitness_information(vector<int> &candidates, vector<vector<int> > &table_fitness);
+        void table_fitness_information();
    private:
 	vector <CIndividual> pool;
 	vector<int> child_idx, parent_idx, inv_parent_idx;
@@ -79,25 +83,43 @@ double CMOEAD::distance_var( vector<double> &a, vector<double> &b)
 }
 void CMOEAD::replacement_phase()
 {
-   unordered_set<int> selected, penalized;
-   vector<int> candidates(pool.size());
-   for(int idx = 0; idx < candidates.size(); idx++) candidates[idx]=idx; 
-   parent_idx.clear();
+  unordered_set<int> survivors, candidates, penalized, survivors_front, candidates_front;
+  vector<double> distances((int)pool.size(), DBL_MAX);
+  vector<set<pair<double, int> > > survivors_weight;
+  for(int idx = 0; idx < pool.size(); idx++) candidates.insert(idx); 
+  table_fitness_information();
 
-   table_fitness_information();
-   dominance_information();
-   select_extremes(candidates, selected);
-  while( selected.size() < nPop)
+  dominance_information(); 
+  lowest_front(candidates, candidates_front);
+
+  R2_contribution_subset(candidates, candidates_front, survivors, survivors_front, penalized, survivors_weight, distances);
+  diversity_information(survivors, candidates, distances);
+//  cout<<candidates.size()<<" "<<candidates_front.size()<<endl;
+//  cout<<survivors.size()<< " "<<survivors_front.size()<<endl;
+  while( survivors.size() < nPop)
   {  
-     //penalize nearest individuals + remove_dominance_information
+     penalization(candidates, penalized, distances, candidates_front);
      if( candidates.empty())
      {
        //get the farthest penalized individual and move to candidates
+       pick_penalized(penalized, survivors, distances);
        continue;
      }
-     //get list of current-zero dominance count....
+     if( candidates_front.empty())
+     update_lowest_front(candidates, candidates_front, survivors_front);
      //get list of R2 contribution
+     R2_contribution_subset(candidates, candidates_front, survivors, survivors_front, penalized, survivors_weight, distances);
   }
+  int idx = 0; 
+  vector<bool> setted( pool.size(), false);
+  for(auto ite_s = survivors.begin() ; ite_s != survivors.end(); ite_s++, idx++)
+  {
+    parent_idx[idx] = *ite_s;
+    setted[*ite_s] = true;
+  }
+  idx = 0;
+  for(int i = 0; i < pool.size();  i++) if(!setted[i]) child_idx[idx++]=i;
+  
 }
 void CMOEAD::init_population()
 {
@@ -107,8 +129,7 @@ void CMOEAD::init_population()
     sprintf(filename,"%s/ParameterSetting/Weight/W%dD_%d.dat", strpath, nobj, nWeight);
     std::ifstream readf(filename);
     namda.resize(nWeight, vector<double> (nobj, 0.0));
-
-    table_fitness.assign(nWeight, vector<double> ((int)candidates.size()));
+    table_fitness.assign(nWeight, vector<double> (nPop+nOffspring));
     // Load weight vectors
     for(int i=0; i< nWeight; i++)
 	for(int j=0; j<nobj; j++)
@@ -190,9 +211,9 @@ void CMOEAD::exec_emo(int run)
 		update_parameterD();
 		evol_population();
 		accumulator += nfes - bef ;
-                if(accumulator > 0.1*(max_nfes)  )
+                if(accumulator > 0.01*(max_nfes)  )
 		{
-	           accumulator -= 0.1*(max_nfes);
+	           accumulator -= 0.01*(max_nfes);
 	//	   save_pos(filename1);
 		   save_front(filename2);
 		}
@@ -252,10 +273,14 @@ void CMOEAD::dominance_information_new(int idx_new)
       }
    }
 }
-void CMOEAD::dominance_information_remove(int ridx)
+void CMOEAD::dominance_information_remove(int rm_idx, unordered_set<int> &current_front)
 {
-  for(auto idx:Sp[ridx]) Np[idx]--;
-  for(auto idx:parent_idx) Sp[idx].erase(ridx);//it can be faster...
+  for(auto idx:Sp[rm_idx])
+  {
+     Np[idx]--;
+    if(Np[idx] == 0) current_front.insert(idx);
+  }
+  for(auto idx:parent_idx) Sp[idx].erase(rm_idx);
 }
 void CMOEAD::update_fronts()
 {
@@ -332,18 +357,19 @@ void CMOEAD::dominance_information()
 //      rank++;
 //   }
 }
-void CMOEAD::select_extremes(vector<int> &candidates, vector<unordered_set> &selected)
+void CMOEAD::select_extremes(unordered_set<int> &candidates, unordered_set<int> &survivors, unordered_set<int> &survivors_front)
 {
  for(int m = 0; m < nobj; m++)
   {
-     pair<double, int> b_best =  make_pair(DBL_MAX, 10000);
-     for(int idx = 0; idx < candidates.size(); idx++)
-        if( pool[candidates[idx]].y_obj[m] < b_best.first ) b_best =  make_pair(pool[candidates[idx]].y_obj[m], idx);
-     if( selected.find(candidates[b_best.second])  == selected.end() )
+     pair<double, unordered_set<int>::iterator> b_best =  make_pair(DBL_MAX, candidates.begin());
+     for(auto idx = candidates.begin(); idx != candidates.end(); idx++)
+        if( pool[*idx].y_obj[m] < b_best.first ) b_best =  make_pair(pool[*idx].y_obj[m], idx);
+
+     if( survivors.find(*b_best.second)  == survivors.end() )
      {
-        selected.insert(candidates[b_best.second]);
-        iter_swap(candidates.begin()+b_best.second, candidates.end()-1);
-        candidates.pop_back();
+        survivors.insert(*b_best.second);
+        survivors_front.insert(*b_best.second);
+	candidates.erase(b_best.second);
      }
   }
 }
@@ -354,9 +380,108 @@ void CMOEAD::table_fitness_information()
   {
      for(int idx = 0; idx < pool.size(); idx++)
      {
-        table_fitness[w_id][idx] = fitnessfunction(pool[idx].y_obj, namda[w_idx]);
+        table_fitness[w_id][idx] = fitnessfunction(pool[idx].y_obj, namda[w_id]);
      }
   }
+}
+void CMOEAD::diversity_information(unordered_set<int> &survivors, unordered_set<int> &candidates, vector<double> &distances)
+{
+   for(auto s_idx:survivors)
+   {
+      for(auto c_idx:candidates)
+      {
+	distances[c_idx] = min(distances[c_idx], distance_var(pool[s_idx].x_var, pool[c_idx].x_var));
+      }
+   } 
+}
+void CMOEAD::penalization(unordered_set<int> &candidates, unordered_set<int> &penalized, vector<double> &distances, unordered_set<int> &candidates_front)
+{
+  if(candidates.empty()) return;
+  unordered_set<int> tmp = candidates;
+  for(auto c_idx = tmp.begin(); c_idx != tmp.end(); c_idx++)
+  {
+     if( distances[*c_idx] < D) 
+     {
+	penalized.insert(*c_idx);
+	dominance_information_remove(*c_idx, candidates_front);
+        candidates_front.erase(*c_idx);
+	candidates.erase(*c_idx);
+     }
+  } 
+}
+void CMOEAD::pick_penalized(unordered_set<int> &penalized, unordered_set<int> &survivors, vector<double> &distances)
+{
+   pair<double, int> max_spread = make_pair(-100000, -1);
+   for( auto p_idx : penalized)
+   {
+      if( distances[p_idx] > max_spread.first) max_spread = make_pair(distances[p_idx], p_idx);
+   }
+   survivors.insert(max_spread.second);
+   for( auto p_idx : penalized)
+   {
+	if(p_idx == max_spread.second) continue;
+      distances[p_idx] = min(distances[p_idx], distance_var( pool[p_idx].x_var, pool[max_spread.second].x_var));
+   }
+   penalized.erase(max_spread.second);
+}
+void CMOEAD::lowest_front(unordered_set<int> &candidates, unordered_set<int> &candidates_front)
+{
+   for(auto c_idx:candidates) if( Np[c_idx] == 0) candidates_front.insert(c_idx);
+}
+void CMOEAD::update_lowest_front(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors_front)
+{
+  for(auto s_idx:survivors_front)
+  {
+     if( Np[s_idx] == 0 ) 
+     {
+	for(auto idx:Sp[s_idx])
+        {
+           Np[idx]--;
+           if(Np[idx] == 0) candidates_front.insert(idx);
+        }
+        Np[s_idx]--;
+     }
+  }
+  survivors_front.clear();
+}
+void CMOEAD::R2_contribution_subset(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors, unordered_set<int> &survivors_front, unordered_set<int> &penalized, vector<set<pair<double, int> > > &survivors_weight, vector<double> &distances)
+{
+   //select_extremes(candidates, survivors, survivors_front);
+  if( survivors_front.empty())
+  {
+     survivors_weight.assign((int)pool.size(), set<pair<double, int>>());
+     pair<double, int> max_contribution(DBL_MAX, -1);
+     for(auto c_idx:candidates_front)
+     {
+	double sum = 0.0;
+        for(int w_id=0; w_id < nWeight; w_id++)
+        {
+           sum += table_fitness[w_id][c_idx];
+        }
+	if( max_contribution.first > sum) max_contribution = make_pair(sum, c_idx);
+     }
+     survivors_front.insert(max_contribution.second);
+     survivors.insert(max_contribution.second);
+     candidates.erase(max_contribution.second);
+     candidates_front.erase(max_contribution.second);
+     for(int w_id=0; w_id < nWeight; w_id++)  survivors_weight[w_id].insert(make_pair(table_fitness[w_id][max_contribution.second], max_contribution.second));
+     return;
+  }
+  pair<double, int> max_contribution(-10000, -1);
+  for(auto c_f:candidates_front)
+  {
+    double Total_contribution = 0.0;
+    for(int w_id = 0; w_id < nWeight; w_id++)
+       Total_contribution += max(0.0, survivors_weight[w_id].begin()->first - table_fitness[w_id][c_f]);
+    if(Total_contribution > max_contribution.first) max_contribution = make_pair(Total_contribution, c_f);
+  }
+  survivors_front.insert(max_contribution.second);
+  survivors.insert(max_contribution.second);
+  candidates.erase(max_contribution.second);
+  candidates_front.erase(max_contribution.second);
+  for(int w_id=0; w_id < nWeight; w_id++)  survivors_weight[w_id].insert(make_pair(table_fitness[w_id][max_contribution.second], max_contribution.second));
+  for(auto idx_c:candidates) distances[idx_c] = min(distances[idx_c], distance_var(pool[idx_c].x_var, pool[max_contribution.second].x_var));
+  for(auto idx_p:penalized) distances[idx_p] = min(distances[idx_p], distance_var(pool[idx_p].x_var, pool[max_contribution.second].x_var));
 
 }
 #endif
