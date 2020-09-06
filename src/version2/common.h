@@ -45,12 +45,10 @@ bool   dominate(vector<double> &u, vector<double> &v, double epsilon)
 
 double fitnessfunction(vector <double> &y_obj, vector <double> &namda)
 {
-    // Chebycheff Scalarizing Function
+    // ASF
 	double max_fun = -1.0e+30;
-
 	for(int n=0; n<nobj; n++)
 	{
-		//double diff = fabs(y_obj[n] - idealpoint[n] + 0.1);
 		double diff = fabs(y_obj[n] - idealpoint[n]);
 		double feval;
 		if(namda[n]==0) 
@@ -64,7 +62,6 @@ double fitnessfunction(vector <double> &y_obj, vector <double> &namda)
 	}
 	return max_fun;
 }
-
 void load_data(char filename[1024], vector< vector<double> > &data, int dim)
 {
 	std::ifstream readf(filename);

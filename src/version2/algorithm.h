@@ -90,6 +90,7 @@ void CMOEAD::replacement_phase()
   table_fitness_information();
 
   dominance_information(); 
+
   lowest_front(candidates, candidates_front);
 
   R2_contribution_subset(candidates, candidates_front, survivors, survivors_front, penalized, survivors_weight, distances);
@@ -212,9 +213,9 @@ void CMOEAD::exec_emo(int run)
 		update_parameterD();
 		evol_population();
 		accumulator += nfes - bef ;
-                if(accumulator > 0.1*(max_nfes)  )
+                if(accumulator > 0.01*(max_nfes)  )
 		{
-	           accumulator -= 0.1*(max_nfes);
+	           accumulator -= 0.01*(max_nfes);
 	//	   save_pos(filename1);
 		   save_front(filename2);
 		}
@@ -365,7 +366,6 @@ void CMOEAD::select_extremes(unordered_set<int> &candidates, unordered_set<int> 
      pair<double, int> b_best =  make_pair(DBL_MAX, -1);
      for(auto c_idx:candidates)
         if( pool[c_idx].y_obj[m] < b_best.first ) b_best =  make_pair(pool[c_idx].y_obj[m], c_idx);
-
      if( survivors.find(b_best.second)  == survivors.end() )
      {
         survivors.insert(b_best.second);
@@ -448,13 +448,15 @@ void CMOEAD::R2_contribution_subset(unordered_set<int> &candidates, unordered_se
 {
 //  if(survivors.empty())
 //  {
+//    survivors_weight.assign(nWeight, set<pair<double, int>>());
+//    pair<double, int> max_contribution(DBL_MAX, -1);
+//    survivors_front.clear();
 //    select_extremes(candidates, survivors, survivors_front);
 //    for(auto s_idx:survivors_front)
 //    {
 //     for(int w_id=0; w_id < nWeight; w_id++)  survivors_weight[w_id].insert(make_pair(table_fitness[w_id][s_idx], s_idx));
-//     for(auto idx_c:candidates) distances[idx_c] = min(distances[idx_c], distance_var(pool[idx_c].x_var, pool[s_idx].x_var));
-//     for(auto idx_p:penalized) distances[idx_p] = min(distances[idx_p], distance_var(pool[idx_p].x_var, pool[s_idx].x_var));
 //    }
+//
 //  }
 //  else 
   if( survivors_front.empty())
@@ -463,10 +465,11 @@ void CMOEAD::R2_contribution_subset(unordered_set<int> &candidates, unordered_se
      pair<double, int> max_contribution(DBL_MAX, -1);
      for(auto c_idx:candidates_front)
      {
-	double sum = 0.0;
+	double sum = DBL_MAX;
         for(int w_id=0; w_id < nWeight; w_id++)
         {
-           sum += table_fitness[w_id][c_idx];
+           sum = min(sum, table_fitness[w_id][c_idx]);
+           //sum += table_fitness[w_id][c_idx];
         }
 	if( max_contribution.first > sum) max_contribution = make_pair(sum, c_idx);
      }
