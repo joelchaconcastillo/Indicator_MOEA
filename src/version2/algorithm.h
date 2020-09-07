@@ -172,11 +172,11 @@ void CMOEAD::evol_population()
    {
       int idx_target = rand()%nPop;
       int idx1=rand()% nPop, idx2=rand()%nPop, idx3=rand()%nPop;
-      //while(idx1 == idx_target) idx1=rand()%nPop;
-      while(idx2 == idx1 ) idx2=rand()%nPop;
-      //while(idx2 == idx1 || idx2 == idx_target) idx2=rand()%nPop;
-      while(idx3 == idx2 || idx3 == idx1 ) idx3=rand()%nPop;
-      //while(idx3 == idx2 || idx3 == idx1 || idx3 == idx_target) idx3=rand()%nPop;
+      while(idx1 == idx_target) idx1=rand()%nPop;
+      //while(idx2 == idx1 ) idx2=rand()%nPop;
+      while(idx2 == idx1 || idx2 == idx_target) idx2=rand()%nPop;
+      //while(idx3 == idx2 || idx3 == idx1 ) idx3=rand()%nPop;
+      while(idx3 == idx2 || idx3 == idx1 || idx3 == idx_target) idx3=rand()%nPop;
       // produce a child solution
       CIndividual &child = pool[child_idx[i]];
       diff_evo_xoverA(pool[parent_idx[idx_target]], pool[parent_idx[idx1]], pool[parent_idx[idx2]], pool[parent_idx[idx3]], child, CR, F);

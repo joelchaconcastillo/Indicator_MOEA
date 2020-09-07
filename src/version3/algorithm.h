@@ -169,11 +169,11 @@ void CMOEAD::evol_population()
    {
       int idx_target = rand()%nPop;
       int idx1=rand()% nPop, idx2=rand()%nPop, idx3=rand()%nPop;
-      //while(idx1 == idx_target) idx1=rand()%nPop;
-      while(idx2 == idx1 ) idx2=rand()%nPop;
-      //while(idx2 == idx1 || idx2 == idx_target) idx2=rand()%nPop;
-      while(idx3 == idx2 || idx3 == idx1 ) idx3=rand()%nPop;
-      //while(idx3 == idx2 || idx3 == idx1 || idx3 == idx_target) idx3=rand()%nPop;
+      while(idx1 == idx_target) idx1=rand()%nPop;
+      //while(idx2 == idx1 ) idx2=rand()%nPop;
+      while(idx2 == idx1 || idx2 == idx_target) idx2=rand()%nPop;
+      //while(idx3 == idx2 || idx3 == idx1 ) idx3=rand()%nPop;
+      while(idx3 == idx2 || idx3 == idx1 || idx3 == idx_target) idx3=rand()%nPop;
       // produce a child solution
       CIndividual &child = pool[child_idx[i]];
       diff_evo_xoverA(pool[parent_idx[idx_target]], pool[parent_idx[idx1]], pool[parent_idx[idx2]], pool[parent_idx[idx3]], child, CR, F);
@@ -333,26 +333,6 @@ void CMOEAD::dominance_information()
 	 Rp[pidx1]=rank;
       }
    }
-//   vector<int> current_Np = Np;
-//   while(true)
-//   {
-//      vector<int> next_front;
-//      for(auto idx:fronts[rank])
-//      {
-//	for(auto idx_dominated:Sp[idx])
-//        {
-//	  current_Np[idx_dominated]--;
-//          if(current_Np[idx_dominated]  == 0) 
-//          {
-//	     next_front.push_back(idx_dominated);
-//	     Rp[idx_dominated] = rank+1;
-//          }
-//        }
-//      }
-//      if(next_front.empty()) break;
-//      fronts.push_back(next_front);
-//      rank++;
-//   }
 }
 void CMOEAD::select_extremes(unordered_set<int> &candidates, unordered_set<int> &survivors, unordered_set<int> &survivors_front)
 {
@@ -427,15 +407,12 @@ void CMOEAD::update_lowest_front(unordered_set<int> &candidates, unordered_set<i
 {
   for(auto s_idx:survivors_front)
   {
-     //if( Np[s_idx] == 0 ) 
-     {
 	for(auto idx:Sp[s_idx])
         {
            Np[idx]--;
            if(Np[idx] == 0) candidates_front.insert(idx);
         }
         Np[s_idx]--;
-     }
   }
   survivors_front.clear();
 }
