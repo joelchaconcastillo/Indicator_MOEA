@@ -56,8 +56,8 @@ int main(int argc, char *argv[])
 	run= atoi(argv[index++]);
 	nobj = atoi(argv[index++]);
 	nPop= atoi(argv[index++]);
-	nOffspring = 100;
-        nWeight = 501;
+        nWeight = atoi(argv[index++]);
+	nOffspring =  atoi(argv[index++]);
 	max_nfes= atoll(argv[index++]);
 	CR = atof(argv[index++]);
 	F = atof(argv[index++]);
@@ -68,6 +68,8 @@ int main(int argc, char *argv[])
 
 	Di = sqrt(nvar)*atof(argv[index++]);
 	Df = atof(argv[index++]);
+
+
 	InitializeBounds(nvar, strTestInstance);
 
 	CMOEAD MOEAD;
