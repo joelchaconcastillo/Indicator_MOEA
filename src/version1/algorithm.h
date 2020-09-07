@@ -145,9 +145,7 @@ void CMOEAD::evol_population()
 {
    for(int i=nOffspring-1; i >=0; i--)
    {
-      static int idx_target = 0;//rand()%nPop;
-      idx_target++;
-      if( idx_target >= nPop) idx_target=0; 
+      int idx_target = rand()%nPop;
       int idx1=rand()% nPop, idx2=rand()%nPop, idx3=rand()%nPop;
       while(idx1 == idx_target) idx1=rand()%nPop;
       while(idx2 == idx1 || idx2 == idx_target) idx2=rand()%nPop;
