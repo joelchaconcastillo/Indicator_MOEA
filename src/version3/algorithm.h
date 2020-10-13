@@ -211,7 +211,7 @@ void CMOEAD::exec_emo(int run)
                 if(accumulator > 0.01*(max_nfes)  )
 		{
 	           accumulator -= 0.01*(max_nfes);
-	//	   save_pos(filename1);
+		   save_pos(filename1);
 		   save_front(filename2);
 		}
 		bef=nfes;
