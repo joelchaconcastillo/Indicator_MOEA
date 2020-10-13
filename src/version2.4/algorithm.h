@@ -434,6 +434,7 @@ void CMOEAD::R2_contribution_subset(unordered_set<int> &candidates, unordered_se
        double Total_contribution = 0.0;
        for(int w_id = 0; w_id < nWeight; w_id++)
           Total_contribution += max(0.0, survivors_weight[w_id].begin()->first - table_fitness[w_id][c_f]);
+          //Total_contribution += survivors_weight[w_id].begin()->first - table_fitness[w_id][c_f];
        if(Total_contribution > max_contribution.first) max_contribution = make_pair(Total_contribution, c_f);
      }
   }

@@ -1,0 +1,7 @@
+version1: top-down div
+version2: replacement + R2 vectors
+version2.2: replacement + 100 vectors
+version2.3: replacement + 100 vectors + non-dominance
+version2.4: replacement + 100 vectors + non-dominance more pure than version2.3
+version3: splited replacement phase
+
