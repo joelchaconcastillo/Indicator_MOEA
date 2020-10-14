@@ -38,7 +38,6 @@ class CMOEAD
 	void pick_penalized(unordered_set<int> &penalized, unordered_set<int> &survivors, vector<double> &distances);
 	void R2_contribution_subset(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors, unordered_set<int> &survivors_front, unordered_set<int> &penalized, vector<set<pair<double, int> > > &survivors_weight, vector<double> &distances);
 	void dominance_information_remove(int rm_idx);
-	void lowest_front(unordered_set<int> &candidates, unordered_set<int> &candidates_front);
 	void update_lowest_front(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors_front);
 	void diversity_information(unordered_set<int> &survivors, unordered_set<int> &penalized, vector<double> &distances);
 
@@ -212,16 +211,6 @@ void CMOEAD::save_pos(char saveFilename[4024])
    }
    fout.close();
 }
-
-/*
-   Dominance information....
-*/
-void CMOEAD::dominance_information_remove(int rm_idx)
-{
-  for(auto idx:Sp[rm_idx])
-     Np[idx]--; 
-  for(int idx=0; idx<Sp.size(); idx++) Sp[idx].erase(rm_idx);
-}
 void CMOEAD::update_fronts()
 {
    vector<int> current_Np = Np;
@@ -322,7 +311,12 @@ void CMOEAD::penalization(unordered_set<int> &candidates, unordered_set<int> &pe
      if( distances[c_idx] <= D ) 
      {
 	penalized.insert(c_idx);
-	dominance_information_remove(c_idx);
+        for(auto idx:Sp[c_idx])
+	{
+	  Np[idx]--; 
+	  if(Np[idx]==0 && distances[idx] > D) candidates_front.insert(idx);
+	}
+        for(int idx=0; idx<Sp.size(); idx++) Sp[idx].erase(c_idx);
         candidates_front.erase(c_idx);
 	candidates.erase(c_idx);
      }
@@ -341,10 +335,6 @@ void CMOEAD::pick_penalized(unordered_set<int> &penalized, unordered_set<int> &s
    {
       distances[p_idx] = min(distances[p_idx], distance_var( pool[p_idx].x_var, pool[max_spread.second].x_var));
    }
-}
-void CMOEAD::lowest_front(unordered_set<int> &candidates, unordered_set<int> &candidates_front)
-{
-   for(auto c_idx:candidates) if( Np[c_idx] == 0) candidates_front.insert(c_idx);
 }
 void CMOEAD::update_lowest_front(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors_front)
 {
@@ -404,7 +394,8 @@ void CMOEAD::replacement_phase()
 
   dominance_information(); 
 
-  lowest_front(candidates, candidates_front);
+  //lowest_front(candidates, candidates_front);
+   for(auto c_idx:candidates) if( Np[c_idx] == 0) candidates_front.insert(c_idx);
 
   R2_contribution_subset(candidates, candidates_front, survivors, survivors_front, penalized, survivors_weight, distances);
   diversity_information(survivors, candidates, distances);
@@ -422,8 +413,6 @@ void CMOEAD::replacement_phase()
        update_lowest_front(candidates, candidates_front, survivors_front);
 	continue;
      }
-//	else
-//      for(auto i:survivors) cout << i << "," <<distances[i] <<" "; cout <<endl;
      //get list of R2 contribution
      R2_contribution_subset(candidates, candidates_front, survivors, survivors_front, penalized, survivors_weight, distances);
   }
