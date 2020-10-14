@@ -364,7 +364,7 @@ void CMOEAD::R2_contribution_subset(unordered_set<int> &candidates, unordered_se
         }
 	if(max_contribution.first < sum) max_contribution = make_pair(sum, c_idx);
      }
-    max_contribution.first *=-1;
+    max_contribution.first *=-1; //this is not necessary..
   }
   else
   {
@@ -391,10 +391,8 @@ void CMOEAD::replacement_phase()
   vector<set<pair<double, int> > > survivors_weight;
   for(int idx = 0; idx < pool.size(); idx++) candidates.insert(idx); 
   table_fitness_information();
-
   dominance_information(); 
 
-  //lowest_front(candidates, candidates_front);
    for(auto c_idx:candidates) if( Np[c_idx] == 0) candidates_front.insert(c_idx);
 
   R2_contribution_subset(candidates, candidates_front, survivors, survivors_front, penalized, survivors_weight, distances);
