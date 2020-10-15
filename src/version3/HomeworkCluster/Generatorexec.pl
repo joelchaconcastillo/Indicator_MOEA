@@ -32,7 +32,7 @@ foreach my $Di(@DI)
          {
          	my $nvar;
          	
-         	for(my $nobj = 2; $nobj <=2; $nobj++)
+         	for(my $nobj = 2; $nobj <=3; $nobj++)
          	{
 		  if( $nobj eq 2) { $nWeights =501; }
 		  if( $nobj eq 3) { $nWeights =496; }
@@ -61,7 +61,7 @@ foreach my $Di(@DI)
          {
          	my $nvar;
          	
-         	for(my $nobj = 2; $nobj <=2; $nobj++)
+         	for(my $nobj = 2; $nobj <=3; $nobj++)
          	{
          	   my $k =4;# 2*($nobj-1);
          	   my $l =20;# 24-$k;
@@ -88,17 +88,17 @@ foreach my $Di(@DI)
 	 	       	   }
 	 	       }
 	    
-		       #	    @Instance = ("UF8", "UF9", "UF10");
-		       #	    $nobj=3;
-		       #	       foreach(@Instance)
-		       #	       {
-		       #	       	   my $nvar=30;
-		       #	          if( $nobj eq 2) { $nWeights =501; }
-		       #		  if( $nobj eq 3) { $nWeights =496; }
-		       #
-		       #	       	   for(my $Sed = 1; $Sed <=35; $Sed++) ##Realizar 35 ejecuciones con distintas semilla de cada instancia..
-		       #	       	   {
-		       #	       	   	print $fout "~$PathAlgorithm/Ejecutable $PathAlgorithm $_ $Sed $nobj $pops $nWeights $nOffspring $max_nfes $CR $F $nvar $Di $Df\n";
-		       #	       	   }
-		       #	       }
+	    @Instance = ("UF8", "UF9", "UF10");
+	    $nobj=3;
+	       foreach(@Instance)
+	       {
+	       	   my $nvar=30;
+	          if( $nobj eq 2) { $nWeights =501; }
+		  if( $nobj eq 3) { $nWeights =496; }
+
+	       	   for(my $Sed = 1; $Sed <=35; $Sed++) ##Realizar 35 ejecuciones con distintas semilla de cada instancia..
+	       	   {
+	       	   	print $fout "~$PathAlgorithm/Ejecutable $PathAlgorithm $_ $Sed $nobj $pops $nWeights $nOffspring $max_nfes $CR $F $nvar $Di $Df\n";
+	       	   }
+	       }
 }
