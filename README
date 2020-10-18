@@ -1,0 +1,2 @@
+#La versión final está en src/version2.2
+La versión 3 tiene varios errores, es un intento de MOMBI, el problema es el que en el ranking del MOMBI se requiere que el número de pesos sea menor que el tamaño de la población que no es el caso.
