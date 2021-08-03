@@ -53,6 +53,16 @@ void CIndividual::obj_eval()
 	if(!strcmp("UF9", strTestInstance))  CEC09_F9(y_obj, x_var);
 	if(!strcmp("UF10", strTestInstance)) CEC09_F10(y_obj, x_var);
 
+	if(!strcmp("IMB1", strTestInstance))  imb1(y_obj, x_var);
+	if(!strcmp("IMB2", strTestInstance))  imb2(y_obj, x_var);
+	if(!strcmp("IMB3", strTestInstance))  imb3(y_obj, x_var);
+	if(!strcmp("IMB4", strTestInstance))  imb4(y_obj, x_var);
+	if(!strcmp("IMB5", strTestInstance))  imb5(y_obj, x_var);
+	if(!strcmp("IMB6", strTestInstance))  imb6(y_obj, x_var);
+	if(!strcmp("IMB7", strTestInstance))  imb7(y_obj, x_var);
+	if(!strcmp("IMB8", strTestInstance))  imb8(y_obj, x_var);
+	if(!strcmp("IMB9", strTestInstance))  imb9(y_obj, x_var);
+	if(!strcmp("IMB10", strTestInstance)) imb10(y_obj, x_var);
 
 	if(!strcmp("R2_DTLZ2_M5", strTestInstance))	CEC09_R2_DTLZ2_M5(y_obj, x_var);	
 	if(!strcmp("R2_DTLZ3_M5", strTestInstance)) CEC09_R2_DTLZ3_M5(y_obj, x_var);

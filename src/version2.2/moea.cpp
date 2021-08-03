@@ -3,7 +3,7 @@
 
 void InitializeBounds(int nvar, char * Instance)
 {
-	if( !strcmp("UF1", Instance) || !strcmp("UF2", Instance) || !strcmp("UF3", Instance) || !strcmp("UF4", Instance) || !strcmp("UF5", Instance) || !strcmp("UF6", Instance) || !strcmp("UF7", Instance) || !strcmp("UF8", Instance) || !strcmp("UF9", Instance) || !strcmp("UF10", Instance))
+	if( !strcmp("UF1", Instance) || !strcmp("UF2", Instance) || !strcmp("UF3", Instance) || !strcmp("UF4", Instance) || !strcmp("UF5", Instance) || !strcmp("UF6", Instance) || !strcmp("UF7", Instance) || !strcmp("UF8", Instance) || !strcmp("UF9", Instance) || !strcmp("UF10", Instance) || !strcmp("IMB1", Instance) || !strcmp("IMB2", Instance) || !strcmp("IMB3", Instance) || !strcmp("IMB4", Instance) || !strcmp("IMB5", Instance) || !strcmp("IMB6", Instance) || !strcmp("IMB7", Instance) || !strcmp("IMB8", Instance) || !strcmp("IMB9", Instance) || !strcmp("IMB10", Instance))
 	{
 		for(int i = 0 ;  i < nvar; i++)
 		{
