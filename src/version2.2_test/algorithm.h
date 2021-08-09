@@ -144,8 +144,8 @@ void CMOEAD::evol_population()
       CIndividual &child = pool[child_idx[i]];
       diff_evo_xoverA(pool[parent_idx[idx_target]], pool[parent_idx[idx1]], pool[parent_idx[idx2]], pool[parent_idx[idx3]], child, CR, F);
       // apply polynomial mutation
-      //realmutation(child, 1.0/nvar);
-      realmutation(child, 0.5);
+      realmutation(child, 1.0/nvar);
+      //realmutation(child, 0.5);
       child.obj_eval();
       // update the reference points and other solutions in the neighborhood or the whole population
       update_reference(child); //O(M)
@@ -175,9 +175,9 @@ void CMOEAD::exec_emo(int run)
 		update_parameterD();
 		evol_population();
 		accumulator += nfes - bef ;
-                if(accumulator > 0.001*(max_nfes)  )
+                if(accumulator > 0.1*(max_nfes)  )
 		{
-	           accumulator -= 0.001*(max_nfes);
+	           accumulator -= 0.1*(max_nfes);
 		   save_pos(filename1);
 		   save_front(filename2);
 		}
