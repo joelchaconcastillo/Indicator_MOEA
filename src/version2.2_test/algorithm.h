@@ -73,7 +73,7 @@ double CMOEAD::distance_var( vector<double> &a, vector<double> &b)
 {
    double TElapsed = nfes, TEnd = max_nfes;
    double dist = 0 ;
-   double ratio = (TElapsed / (TEnd*Df));
+   double ratio = 1.0 - (TElapsed / (TEnd*Df));
    for(int i = 0; i < a.size(); i++)
    {
       double factor = (a[i]-b[i])/(vuppBound[i]-vlowBound[i]);
