@@ -175,9 +175,9 @@ void CMOEAD::exec_emo(int run)
 		update_parameterD();
 		evol_population();
 		accumulator += nfes - bef ;
-                if(accumulator > 0.1*(max_nfes)  )
+                if(accumulator > 0.001*(max_nfes))
 		{
-	           accumulator -= 0.1*(max_nfes);
+	           accumulator -= 0.001*(max_nfes);
 		   save_pos(filename1);
 		   save_front(filename2);
 		}
@@ -404,6 +404,7 @@ void CMOEAD::replacement_phase()
 
   while( survivors.size() < nPop)
   {  
+     diversity_information(survivors, candidates, distances);
      penalization(candidates, penalized, distances, candidates_front);
 
      if( candidates.empty()) break;
