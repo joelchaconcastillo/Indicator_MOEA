@@ -106,7 +106,7 @@ foreach my $Di(@DI)
 	           my $nobj=2;
 	 	       foreach(@Instance)
 	 	       {
-	 	       	   my $nvar=30;
+	 	       	   my $nvar=10;
 	 	       	   for(my $Sed = 1; $Sed <=35; $Sed++) ##Realizar 35 ejecuciones con distintas semilla de cada instancia..
 	 	       	   {
 	 		  if( $nobj eq 2) { $nWeights =501; }
@@ -119,7 +119,7 @@ foreach my $Di(@DI)
 	    $nobj=3;
 	       foreach(@Instance)
 	       {
-	       	   my $nvar=30;
+	       	   my $nvar=10;
 	          if( $nobj eq 2) { $nWeights =501; }
 		  if( $nobj eq 3) { $nWeights =496; }
 
