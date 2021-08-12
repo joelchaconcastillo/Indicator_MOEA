@@ -16,13 +16,15 @@ my $PathAlgorithm = $Path;
 #{
 #my @Instance = ("DTLZ1", "DTLZ2", "DTLZ3", "DTLZ4", "DTLZ5", "DTLZ6", "DTLZ7");
 my @DI = ("0.4");#, "0.2", "0.4", "0.6", "0.8", "1.0");
+foreach my $CR("0.2", "0.4", "0.6", "0.8", "1.0")
+{
 foreach my $Di(@DI)
 {
 	#   my $Di = 0.4;
    my $Df = 0.5;
    my $pops=100;
    my $max_nfes=2500000;
-   my $CR = 0.0;
+   #   my $CR = 0.0;
    my $F = 0.75;
    my $nWeights = 501;
    my $nOffspring = 100; 
@@ -130,4 +132,5 @@ foreach my $Di(@DI)
 	       }
 
 
+}
 }
