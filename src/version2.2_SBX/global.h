@@ -42,7 +42,7 @@ vector <double> idealpoint;
 double          scale[100];  
 
 
-int		etax    = 20, 	etam    = 50;   // distribution indexes of crossover and mutation
+int		etax    = 2, 	etam    = 50;   // distribution indexes of crossover and mutation
 
 double  realx,  realm,  realb = 0.9;    // crossover, mutation, selection probabilities
 

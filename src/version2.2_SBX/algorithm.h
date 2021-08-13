@@ -138,11 +138,13 @@ void CMOEAD::evol_population()
       if(Rp[parent_idx[idx3]] > Rp[parent_idx[idx4]]) idx3=idx4;
       // produce a child solution
       CIndividual &child1 = pool[child_idx[i]], &child2 = pool[child_idx[i+1]];
-      real_sbx_xoverA(pool[parent_idx[idx1]], pool[parent_idx[idx3]], child1, child2);
+      
+      bool crosed = real_sbx_xoverA(pool[parent_idx[idx1]], pool[parent_idx[idx3]], child1, child2);
       // apply polynomial mutation
-      realmutation(child1, 1.0/nvar);
-      realmutation(child2, 1.0/nvar);
-      //realmutation(child, 0.5);
+      bool mut1 = realmutation(child1, 1.0/nvar);
+      bool mut2 = realmutation(child2, 1.0/nvar);
+      if(crosed || mut1) nfes++;
+      if(crosed || mut2) nfes++;
       child1.obj_eval();
       child2.obj_eval();
       // update the reference points and other solutions in the neighborhood or the whole population
@@ -181,7 +183,7 @@ void CMOEAD::exec_emo(int run)
 		   save_front(filename2);
 		}
 		bef=nfes;
-	        nfes += nOffspring;
+	        //nfes += nOffspring;
 	}
 	save_pos(filename1);
 	save_front(filename2);

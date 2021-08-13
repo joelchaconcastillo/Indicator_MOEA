@@ -1,4 +1,4 @@
-for Di in 0.0 0.2 0.4 0.6 0.8 1.0
+for Di in 0.2 0.4 0.6 0.8 1.0
 do
   algname=(POF)
      cont=0
@@ -19,7 +19,7 @@ do
               echo "" >>${algname[${cont}]}/${i}_2_${Di}
            done
      done
-      for i in DTLZ2 DTLZ3 DTLZ4;
+      for i in DTLZ2 DTLZ3 DTLZ4 IMB1 IMB2 IMB3 IMB7 IMB8 IMB9;
       do
             rm ${algname[$cont]}/${i}_2_${Di}
 
@@ -105,7 +105,7 @@ do
            done
      done
 
-      for i in DTLZ2 DTLZ3 DTLZ4;
+      for i in DTLZ2 DTLZ3 DTLZ4 IMB4 IMB5 IMB6 IMB10;
       do
             rm ${algname[$cont]}/${i}_3_${Di}
 
