@@ -9,7 +9,6 @@
 #include <iomanip>
 #include "global.h"
 #include "recomb.h"
-#include "common.h"
 #include "individual.h"
 #include "HypervolumeIndicator.h"
 using namespace shark;
@@ -30,13 +29,14 @@ class CMOEAD
 	void update_parameterD();
 	double distance_var( vector<double> &a, vector<double> &b);
         void dominance_information(); 
-        void update_fronts(); 
+	void full_dominance_information();
 	void pick_penalized(unordered_set<int> &penalized, unordered_set<int> &survivors, vector<double> &distances);
-	int max_HV_contribution(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors, unordered_set<int> &survivors_front, unordered_set<int> &penalized);
+	int max_HV_contribution(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors, unordered_set<int> &survivors_front);
 	void dominance_information_remove(int rm_idx);
 	void update_lowest_front(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors_front);
 	void diversity_information(unordered_set<int> &survivors, unordered_set<int> &penalized, vector<double> &distances);
 	void penalize_nearest(int idx_survivor, unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &penalized);
+	void classic_hv_selection();
    private:
 	vector <CIndividual> pool;
 	vector<int> child_idx, parent_idx, inv_parent_idx;
@@ -96,7 +96,7 @@ void CMOEAD::init_population()
 void CMOEAD::evol_population()
 {
    dominance_information(); 
-   for(int i = 0; i < nOffspring; i +=2)
+   for(int i = 0; i < nOffspring; )
    {
       int idx1=rand()%nPop, idx2=rand()%nPop, idx3=rand()%nPop, idx4=rand()%nPop;
       while(idx2==idx1) idx2=rand()%nPop;
@@ -104,8 +104,7 @@ void CMOEAD::evol_population()
       if(Rp[parent_idx[idx1]] > Rp[parent_idx[idx2]]) idx1=idx2;
       if(Rp[parent_idx[idx3]] > Rp[parent_idx[idx4]]) idx3=idx4;
       // produce a child solution
-      CIndividual &child1 = pool[child_idx[i]], &child2 = pool[child_idx[i+1]];
-      
+      CIndividual child1 = pool[parent_idx[idx1]], child2 = pool[parent_idx[idx2]];
       bool crosed = real_sbx_xoverA(pool[parent_idx[idx1]], pool[parent_idx[idx3]], child1, child2);
       // apply polynomial mutation
       bool mut1 = realmutation(child1, 1.0/nvar);
@@ -114,8 +113,18 @@ void CMOEAD::evol_population()
       if(crosed || mut2) nfes++;
       child1.obj_eval();
       child2.obj_eval();
+      swap(child1, child2);
+      if(i < nOffspring){ //this modification allows to modify its behaviour from stady-state to traditional MOO
+	pool[child_idx[i++]]=child1;
+      }
+      if(i < nOffspring){
+	pool[child_idx[i++]]=child2;
+      }
    }
-   replacement_phase();
+   if(D>0)
+     replacement_phase();
+   else
+     classic_hv_selection();
 }
 void CMOEAD::exec_emo(int run)
 {
@@ -181,61 +190,7 @@ void CMOEAD::save_pos(char saveFilename[4024])
    }
    fout.close();
 }
-void CMOEAD::update_fronts()
-{
-   vector<int> current_Np = Np;
-   fronts.assign(1, vector<int>());
-   int rank = 0;
-   for(auto idx:parent_idx)
-   {
-      if(current_Np[idx]==0)
-      {
-        fronts[rank].push_back(idx);
-        Rp[idx] = rank;
-      }
-   }
-   while(true)
-   {
-      vector<int> next_front;
-      for(auto idx:fronts[rank])
-      {
-	for(auto idx_dominated:Sp[idx])
-        {
-	  current_Np[idx_dominated]--;
-          if(current_Np[idx_dominated]  == 0) 
-          {
-	     next_front.push_back(idx_dominated);
-	     Rp[idx_dominated] = rank+1;
-          }
-        }
-      }
-      if(next_front.empty()) break;
-      fronts.push_back(next_front);
-      rank++;
-   }
-}
-void CMOEAD::dominance_information()
-{
-   Sp.assign(nPop+nOffspring, unordered_set<int>());
-   Np.assign(nPop+nOffspring, 0);
-   Rp.assign(nPop+nOffspring, 0);
-   fronts.assign(1, vector<int>());
-   int rank = 0;
-   for(int pidx1=0; pidx1< nPop+nOffspring; pidx1++)
-   {
-      for(int pidx2=0; pidx2< nPop+nOffspring; pidx2++)
-      {
-	if(pidx1 == pidx2) continue;
-        if( pool[pidx1] < pool[pidx2]) Sp[pidx1].insert(pidx2);
- 	else if( pool[pidx2] < pool[pidx1]) Np[pidx1]++;
-      }
-      if( Np[pidx1] == 0)
-      {
-         fronts[rank].push_back(pidx1);
-	 Rp[pidx1]=rank;
-      }
-   }
-}
+
 void CMOEAD::diversity_information(unordered_set<int> &survivors, unordered_set<int> &candidates, vector<double> &distances)
 {
    for(auto s_idx:survivors)
@@ -284,7 +239,7 @@ void CMOEAD::replacement_phase()
   while( survivors.size() < nPop && !candidates.empty())
   {  
      //move to survivors..
-     int new_survivor_idx = max_HV_contribution(candidates, candidates_front, survivors, survivors_front, penalized);
+     int new_survivor_idx = max_HV_contribution(candidates, candidates_front, survivors, survivors_front);
      //penalize nearest ind..
      penalize_nearest(new_survivor_idx, candidates, candidates_front, penalized);
      if(candidates.empty())break;
@@ -321,39 +276,128 @@ void CMOEAD::penalize_nearest(int idx_survivor, unordered_set<int> &candidates, 
      }
      for(auto c_idx:candidates) if(Np[c_idx]==0) candidates_front.insert(c_idx);
 }
-int CMOEAD::max_HV_contribution(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors, unordered_set<int> &survivors_front, unordered_set<int> &penalized)
+int CMOEAD::max_HV_contribution(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors, unordered_set<int> &survivors_front)
 {
-  return 0;
-//  pair<double, int> max_contribution(-DBL_MAX, -1);
-//  if(survivors_front.empty())
-//  {
-//     survivors_weight.assign(nWeight, set<pair<double, int>>());
-//     for(auto c_idx:candidates_front)
-//     {
-//	double sum = 0;
-//        for(int w_id=0; w_id < nWeight; w_id++)
-//        {
-//           sum -= table_fitness[w_id][c_idx];
-//        }
-//	if(max_contribution.first < sum) max_contribution = make_pair(sum, c_idx);
-//     }
-//    max_contribution.first *=-1; //this is not necessary..
-//  }
-//  else
-//  {
-//     for(auto c_f:candidates_front)
-//     {
-//       double Total_contribution = 0.0;
-//       for(int w_id = 0; w_id < nWeight; w_id++)
-//          Total_contribution += max(0.0, survivors_weight[w_id].begin()->first - table_fitness[w_id][c_f]);
-//       if(Total_contribution > max_contribution.first) max_contribution = make_pair(Total_contribution, c_f);
-//     }
-//  }
-//  survivors_front.insert(max_contribution.second);
-//  survivors.insert(max_contribution.second);
-//  candidates.erase(max_contribution.second);
-//  candidates_front.erase(max_contribution.second);
-//  for(int w_id=0; w_id < nWeight; w_id++)  survivors_weight[w_id].insert(make_pair(table_fitness[w_id][max_contribution.second], max_contribution.second));
-//  return max_contribution.second;
+  
+  vector<vector<double> > all(survivors_front.size()+1);
+  int size=0;
+  vector<double> ref(nobj, -DBL_MAX);
+  for(auto idx:survivors_front){
+	all[size++]=pool[idx].y_obj;
+	for(int m = 0; m < nobj; m++)ref[m]=max(ref[m], pool[idx].y_obj[m]);
+  }
+  for(auto idx:candidates_front)
+	for(int m = 0; m < nobj; m++)ref[m]=max(ref[m], pool[idx].y_obj[m]);
+  for(int m = 0; m < nobj; m++)ref[m] +=1.0;
+  m_indicator.setReference(ref);
+  pair<double, int> max_ctr(-DBL_MAX, -1);
+
+  for(auto idx:candidates_front)
+  {
+     all[size]=pool[idx].y_obj; 
+     vector<pair<double, size_t> > res=m_indicator.leastContributors(all, (size_t)all.size());
+     double cur_ctr;
+     for(auto pp:res){
+	if( pp.second==size){
+	   cur_ctr=pp.first; break;
+	}
+     } 
+     max_ctr = max(max_ctr, make_pair(cur_ctr, idx));
+  }
+  survivors_front.insert(max_ctr.second);
+  survivors.insert(max_ctr.second);
+  candidates.erase(max_ctr.second);
+  candidates_front.erase(max_ctr.second);
+  return max_ctr.second;
+}
+void CMOEAD::classic_hv_selection()
+{
+  full_dominance_information();
+  vector<int> new_idx_parent;
+  int rank=0;
+  while(new_idx_parent.size()+fronts[rank].size() < nPop)
+  {
+     for(auto idx:fronts[rank])new_idx_parent.push_back(idx);
+     rank++;
+  }
+  vector<vector<double> > lastfront;
+  for(auto idx:fronts[rank]) lastfront.push_back(pool[idx].y_obj);
+  while(new_idx_parent.size()+fronts[rank].size() > nPop)
+  {
+    vector<pair<double, size_t> > to_remove=m_indicator.leastContributors(lastfront, 1);
+    iter_swap(lastfront.begin()+to_remove[0].second, lastfront.end()-1);   
+    iter_swap(fronts[rank].begin()+to_remove[0].second, fronts[rank].end()-1);   
+    lastfront.pop_back();
+    fronts[rank].pop_back();
+  }
+  for(auto idx:fronts[rank])new_idx_parent.push_back(idx);
+  vector<bool> isparent(pool.size(), false);
+  int i=0;
+  for(auto idx:new_idx_parent) isparent[idx]=true, parent_idx[i++]=idx;
+  for(int i = 0,j=0; i < pool.size(); i++) if(!isparent[i]) child_idx[j++]=i;
+}
+void CMOEAD::full_dominance_information()
+{
+
+   Sp.assign(nPop+nOffspring, unordered_set<int>());
+   Np.assign(nPop+nOffspring, 0);
+   Rp.assign(nPop+nOffspring, 0);
+   fronts.assign(1, vector<int>());
+   int rank = 0;
+   for(int pidx1=0; pidx1< nPop+nOffspring; pidx1++)
+   {
+      for(int pidx2=0; pidx2< nPop+nOffspring; pidx2++)
+      {
+	if(pidx1 == pidx2) continue;
+        if( pool[pidx1] < pool[pidx2]) Sp[pidx1].insert(pidx2);
+ 	else if( pool[pidx2] < pool[pidx1]) Np[pidx1]++;
+      }
+      if( Np[pidx1] == 0)
+      {
+         fronts[rank].push_back(pidx1);
+	 Rp[pidx1]=rank;
+      }
+   }
+   while(true)
+   {
+      vector<int> next_front;
+      for(auto idx:fronts[rank])
+      {
+	for(auto idx_dominated:Sp[idx])
+        {
+	  Np[idx_dominated]--;
+          if(Np[idx_dominated]  == 0) 
+          {
+	     next_front.push_back(idx_dominated);
+	     Rp[idx_dominated] = rank+1;
+          }
+        }
+      }
+      if(next_front.empty()) break;
+      fronts.push_back(next_front);
+      rank++;
+   }
+}
+void CMOEAD::dominance_information()
+{
+   Sp.assign(nPop+nOffspring, unordered_set<int>());
+   Np.assign(nPop+nOffspring, 0);
+   Rp.assign(nPop+nOffspring, 0);
+   fronts.assign(1, vector<int>());
+   int rank = 0;
+   for(int pidx1=0; pidx1< nPop+nOffspring; pidx1++)
+   {
+      for(int pidx2=0; pidx2< nPop+nOffspring; pidx2++)
+      {
+	if(pidx1 == pidx2) continue;
+        if( pool[pidx1] < pool[pidx2]) Sp[pidx1].insert(pidx2);
+ 	else if( pool[pidx2] < pool[pidx1]) Np[pidx1]++;
+      }
+      if( Np[pidx1] == 0)
+      {
+         fronts[rank].push_back(pidx1);
+	 Rp[pidx1]=rank;
+      }
+   }
 }
 #endif
