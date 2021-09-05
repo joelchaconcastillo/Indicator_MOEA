@@ -3,13 +3,13 @@
 using namespace std;
 int main()
 {
-  srand(time(0));
-  max_nfes=2500000;
-  nvar=24;
+  srand(1);
+  max_nfes=250000;
+  nvar=6;
   nobj=2;
   npop=100;
   Pm=1.0/nvar;
-  param_k=4;
+  param_k=1;
   run();
   return 0;
 }

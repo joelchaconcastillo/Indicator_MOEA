@@ -84,6 +84,10 @@ struct HypervolumeContribution {
 			HypervolumeContribution3D algorithm;
 			return algorithm.smallest(points, k, ref);
 		}
+	        else{
+		   std::cout << "There is only support for two and three objectives\n";
+		   exit(0);
+ 		}
 	//	else if(m_useApproximation){
 	//		return m_approximationAlgorithm.smallest(points, k, ref);
 	//	}else{
@@ -106,6 +110,10 @@ struct HypervolumeContribution {
 			HypervolumeContribution3D algorithm;
 			return algorithm.largest(points, k, ref);
 		}
+	        else{
+		   std::cout << "There is only support for two and three objectives\n";
+		   exit(0);
+ 		}
 	//	else{
 	//		SHARK_RUNTIME_CHECK(!m_useApproximation, "Largest not implemented for approximation algorithm");
 	//		HypervolumeContributionMD algorithm;
@@ -129,7 +137,7 @@ struct HypervolumeContribution {
 	 	  {
 	            for(int i = 0; i <npoints; i++)
 			ref[j] = std::max(ref[j], points[i][j]);
-			ref[j] *=1.1;
+			ref[j] +=1.0;
 		  }
 		if(numObjectives == 2){
 			HypervolumeContribution2D algorithm;
@@ -139,6 +147,10 @@ struct HypervolumeContribution {
 			HypervolumeContribution3D algorithm;
 			return algorithm.smallest(points, k, ref);
 		}
+	        else{
+		   std::cout << "There is only support for two and three objectives\n";
+		   exit(0);
+ 		}
 	//	else if(m_useApproximation){
 	//		return m_approximationAlgorithm.smallest(points, k, ref);
 	//	}else{
@@ -160,7 +172,7 @@ struct HypervolumeContribution {
 	 	  {
 	            for(int i = 0; i <npoints; i++)
 			ref[j] = std::max(ref[j], points[i][j]);
-			ref[j] *=1.1;
+			ref[j] +=1.0;
 		  }
 
 		if(numObjectives == 2){

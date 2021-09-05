@@ -2,7 +2,7 @@
 #define STEADY_STATE_MOEA_HPP
 #include "HypervolumeIndicator.h"
 #include "problem.h"
-#define EPS 1.0e-14
+#define EPS 1.0e-240
 using namespace std;
 using namespace shark;
 double rnd_uni(){
@@ -16,7 +16,7 @@ double Di=0.4, Df=0.5, Px=0.4, Pm, Dt;
 long long max_nfes, nfes=0;
 HypervolumeIndicator m_indicator;
 vector<vector<double> > parent_xvar, parent_yobj;
-vector<vector<int> > fronts;
+vector<unordered_set<int> > fronts;
 vector<int> Np, Rp;
 vector<unordered_set<int> > Sp;
 bool operator<(const vector<double> &ind1, const vector<double> &ind2)
@@ -28,55 +28,59 @@ bool operator<(const vector<double> &ind1, const vector<double> &ind2)
     return dominated;
 }
 void dominance_info(){
-   Sp.assign(npop+1, unordered_set<int>());
-   Np.assign(npop+1, 0);
+   Sp.assign(npop, unordered_set<int>());
+   Np.assign(npop, 0);
    Rp.assign(npop+1, 0);
-   fronts.assign(1, vector<int>());
+   fronts.assign(npop+1, unordered_set<int>());
    for(int pidx1=0; pidx1< npop; pidx1++){
       for(int pidx2=0; pidx2< npop; pidx2++){
 	if(pidx1 == pidx2) continue;
         if( parent_yobj[pidx1] < parent_yobj[pidx2]) Sp[pidx1].insert(pidx2);
  	else if( parent_yobj[pidx2] < parent_yobj[pidx1]) Np[pidx1]++;
       }
-      if( Np[pidx1]==0)fronts[0].push_back(pidx1);
+      if( Np[pidx1]==0)fronts[0].insert(pidx1), Rp[pidx1]=0;
    }    
    int rank = 0;
    vector<int> innerNp=Np;
    while(true){
-     vector<int> nxt;
      for(auto idx:fronts[rank]){
        for(auto idx_dom:Sp[idx]){
 	  innerNp[idx_dom]--;
 	  if(innerNp[idx_dom]==0)
-	     nxt.push_back(idx_dom), Rp[idx_dom]=rank+1;
+	     fronts[rank+1].insert(idx_dom), Rp[idx_dom]=rank+1;
        }
      }
-     if(nxt.empty())break;
-     fronts.push_back(nxt);
+     if(fronts[rank+1].empty())break;
      rank++;
    }
 }
-void classic_hv_selection()
-{
-//   for(int i = 0; i < npop; i++){
-//      if( parent_yobj.back() < parent_yobj[i]) Sp[npop].insert(i);
-//      else if(parent_yobj[i] < parent_yobj.back()) Np[npop]++, Sp[i].insert(npop); 
-//   }
-  npop++;
-  dominance_info();
-  npop--;
-  vector<int> new_idx_parent;
-  int rank=0;
-  while(new_idx_parent.size()+fronts[rank].size() < npop)
-  {
-     for(auto idx:fronts[rank])new_idx_parent.push_back(idx);
-     rank++;
+void classic_hv_selection(){
+  Rp.back()=0;
+  int lastRank=0;
+  for(int i = 0; i < npop; i++){
+     if( parent_yobj[i]<parent_yobj.back()){
+       Rp.back()=max(Rp[i]+1, Rp.back());
+     }
+     if(parent_yobj.back()< parent_yobj[i]){
+	 fronts[Rp[i]].erase(i);
+         Rp[i]++;
+	 fronts[Rp[i]].insert(i);
+     }
+    lastRank=max(lastRank, Rp[i]);
   }
+  fronts[Rp.back()].insert(npop);
+  lastRank=max(lastRank, Rp.back());
   vector<vector<double> > lastfront;
-  for(auto idx:fronts[rank]) lastfront.push_back(parent_yobj[idx]);
+  vector<int> idxs;
+  for(auto idx:fronts[lastRank]) lastfront.push_back(parent_yobj[idx]), idxs.push_back(idx);
   vector<pair<double, size_t> > to_remove=m_indicator.leastContributors(lastfront, 1);
-  iter_swap(parent_yobj.begin()+fronts[rank][to_remove[0].second], parent_yobj.end()-1);
-  iter_swap(parent_xvar.begin()+fronts[rank][to_remove[0].second], parent_xvar.end()-1);
+  int id=idxs[to_remove[0].second];
+  iter_swap(parent_yobj.begin()+id, parent_yobj.end()-1);
+  iter_swap(parent_xvar.begin()+id, parent_xvar.end()-1);
+  fronts[Rp[id]].erase(id);
+  fronts[Rp[npop]].erase(npop);
+  fronts[Rp[npop]].insert(id);
+  iter_swap(Rp.begin()+id, Rp.end()-1);
 }
 void updateDt(){
       Dt = Di - Di * (nfes/ (double)(max_nfes*Df));
@@ -125,11 +129,11 @@ bool realmutation(vector<double> &x){
 }
 bool real_sbx_xoverA(vector<double> &parent1, vector<double> &parent2, vector<double> &child1)
 {
-    vector<double> child2=child1;
+//    vector<double> child2=child1;
     bool changed=false;
+	changed=true;
     double rand, y1, y2, yl, yu, c1, c2, alpha, beta, betaq;
     if (rnd_uni() <= Px){
-	changed=true;
         for (int i=0; i<nvar; i++){
             if (rnd_uni()<=0.5 ){
                 if (fabs(parent1[i]-parent2[i]) > EPS){
@@ -164,31 +168,33 @@ bool real_sbx_xoverA(vector<double> &parent1, vector<double> &parent2, vector<do
                     c2 = min(c2, yu);
                     if (rnd_uni()<=0.5){
                         child1[i] = c2;
-                        child2[i] = c1;
+                    //    child2[i] = c1;
                     }
                     else{
                         child1[i] = c1;
-                        child2[i] = c2;
+                      //  child2[i] = c2;
                     }
                 }
                 else{
                     child1[i] = parent1[i];
-                    child2[i] = parent2[i];
+                    //child2[i] = parent2[i];
                 }
             }
             else{
                 child1[i] = parent1[i];
-                child2[i] = parent2[i];
+               // child2[i] = parent2[i];
             }
         }
     }
-    else child1 = parent1, child2 = parent2;
+    else child1 = parent1;//, child2 = parent2;
+
     return changed;
 }
 
 void eval(vector<double> &yobj, vector<double> &xvar){
-   wfg8(yobj, xvar, param_k);
-   //dtlz1(yobj, xvar);
+   //wfg8(yobj, xvar, param_k);
+   //wfg1(yobj, xvar, param_k);
+   dtlz1(yobj, xvar);
 }
 pair<int, int> binary_torunament(){
   int ps[2];
@@ -214,7 +220,8 @@ void evol(){
    classic_hv_selection();
 }
 void init(){
-   for(int i = 0; i < nvar; i++) lb[i]=0.0, ub[i]=(i+1.0)*2.0;
+   //for(int i = 0; i < nvar; i++) lb[i]=0.0, ub[i]=(i+1.0)*2.0;
+   for(int i = 0; i < nvar; i++) lb[i]=0.0, ub[i]=1.0;
    parent_xvar.assign(npop+1, vector<double>(nvar));
    parent_yobj.assign(npop+1, vector<double>(nobj));
    nfes=0; 
@@ -227,8 +234,9 @@ void init(){
    updateDt();
 }
 void end(){
-  for(auto i1:parent_yobj){
-    for(auto i2:i1)  cout << i2<<" ";
+  for(int i1=0; i1<npop+1; i1++){
+    for(int i2=0; i2<nobj; i2++)  cout << parent_yobj[i1][i2]<<" "; 
+     cout << Rp[i1];
      cout <<endl;
   }
 }
