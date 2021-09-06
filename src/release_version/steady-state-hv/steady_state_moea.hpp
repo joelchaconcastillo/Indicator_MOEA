@@ -18,8 +18,8 @@ HypervolumeIndicator m_indicator;
 vector<vector<double> > parent_xvar, parent_yobj;
 vector<unordered_set<int> > fronts;
 vector<int> Np, Rp;
-vector<double> bnpfitnessHV;
 vector<unordered_set<int> > Sp;
+vector<bool> prev_survivor;
 bool operator<(const vector<double> &ind1, const vector<double> &ind2)
 {
     bool dominated = true;
@@ -27,77 +27,6 @@ bool operator<(const vector<double> &ind1, const vector<double> &ind2)
         if(ind2[n]<ind1[n]) return false;
     if(ind2==ind1) return false;
     return dominated;
-}
-void updateDt(){
-      Dt = Di - Di * (nfes/ (double)(max_nfes*Df));
-}
-void dominance_info(){
-   Sp.assign(npop, unordered_set<int>());
-   Np.assign(npop, 0);
-   Rp.assign(npop+1, 0);
-   fronts.assign(npop+1, unordered_set<int>());
-   for(int pidx1=0; pidx1< npop; pidx1++){
-      for(int pidx2=0; pidx2< npop; pidx2++){
-	if(pidx1 == pidx2) continue;
-        if( parent_yobj[pidx1] < parent_yobj[pidx2]) Sp[pidx1].insert(pidx2);
- 	else if( parent_yobj[pidx2] < parent_yobj[pidx1]) Np[pidx1]++;
-      }
-      if( Np[pidx1]==0)fronts[0].insert(pidx1), Rp[pidx1]=0;
-   }    
-   int rank = 0;
-   vector<int> innerNp=Np;
-   while(true){
-     for(auto idx:fronts[rank]){
-       for(auto idx_dom:Sp[idx]){
-	  innerNp[idx_dom]--;
-	  if(innerNp[idx_dom]==0)
-	     fronts[rank+1].insert(idx_dom), Rp[idx_dom]=rank+1;
-       }
-     }
-     if(fronts[rank+1].empty())break;
-     rank++;
-   }
-}
-int update_fronts(){
-  Rp.back()=0;
-  int lastRank=0;
-  for(int i = 0; i < npop; i++){
-     if( parent_yobj[i]<parent_yobj.back()){
-       Rp.back()=max(Rp[i]+1, Rp.back());
-     }
-     if(parent_yobj.back()< parent_yobj[i]){
-	 fronts[Rp[i]].erase(i);
-         Rp[i]++;
-	 fronts[Rp[i]].insert(i);
-     }
-    lastRank=max(lastRank, Rp[i]);
-  }
-  fronts[Rp.back()].insert(npop);
-  lastRank=max(lastRank, Rp.back());
-  return lastRank;
-}
-void classic_hv_selection(){
-  int lastRank = update_fronts();
-  vector<vector<double> > lastfront;
-  vector<int> idxs;
-  for(auto idx:fronts[lastRank]) lastfront.push_back(parent_yobj[idx]), idxs.push_back(idx);
-  vector<pair<double, size_t> > to_remove=m_indicator.leastContributors(lastfront, 1);
-  int id=idxs[to_remove[0].second];
-  iter_swap(parent_yobj.begin()+id, parent_yobj.end()-1);
-  iter_swap(parent_xvar.begin()+id, parent_xvar.end()-1);
-  fronts[Rp[id]].erase(id);
-  fronts[Rp[npop]].erase(npop);
-  fronts[Rp[npop]].insert(id);
-  iter_swap(Rp.begin()+id, Rp.end()-1);
-}
-void replacement(){
-  int lastRank = update_dominance();
-  
-  while(){
-  } 
-  
-   
- 
 }
 double distance_var( vector<double> &xa, vector<double> &xb)
 {
@@ -205,6 +134,116 @@ bool real_sbx_xoverA(vector<double> &parent1, vector<double> &parent2, vector<do
     return changed;
 }
 
+
+void updateDt(){
+      Dt = Di - Di * (nfes/ (double)(max_nfes*Df));
+}
+void dominance_info(){
+   Sp.assign(npop, unordered_set<int>());
+   Np.assign(npop, 0);
+   Rp.assign(npop+1, 0);
+   fronts.assign(npop+1, unordered_set<int>());
+   for(int pidx1=0; pidx1< npop; pidx1++){
+      for(int pidx2=0; pidx2< npop; pidx2++){
+	if(pidx1 == pidx2) continue;
+        if( parent_yobj[pidx1] < parent_yobj[pidx2]) Sp[pidx1].insert(pidx2);
+ 	else if( parent_yobj[pidx2] < parent_yobj[pidx1]) Np[pidx1]++;
+      }
+      if( Np[pidx1]==0)fronts[0].insert(pidx1), Rp[pidx1]=0;
+   }    
+   int rank = 0;
+   vector<int> innerNp=Np;
+   while(true){
+     for(auto idx:fronts[rank]){
+       for(auto idx_dom:Sp[idx]){
+	  innerNp[idx_dom]--;
+	  if(innerNp[idx_dom]==0)
+	     fronts[rank+1].insert(idx_dom), Rp[idx_dom]=rank+1;
+       }
+     }
+     if(fronts[rank+1].empty())break;
+     rank++;
+   }
+}
+int update_fronts(){
+  Rp.back()=0;
+  int lastRank=0;
+  for(int i = 0; i < npop; i++){
+     if( parent_yobj[i]<parent_yobj.back()){
+       Rp.back()=max(Rp[i]+1, Rp.back());
+     }
+     if(parent_yobj.back()< parent_yobj[i]){
+	 fronts[Rp[i]].erase(i);
+         Rp[i]++;
+	 fronts[Rp[i]].insert(i);
+     }
+    lastRank=max(lastRank, Rp[i]);
+  }
+  fronts[Rp.back()].insert(npop);
+  lastRank=max(lastRank, Rp.back());
+  return lastRank;
+}
+void classic_hv_selection(){
+  int lastRank = update_fronts();
+  vector<vector<double> > lastfront;
+  vector<int> idxs;
+  for(auto idx:fronts[lastRank]) lastfront.push_back(parent_yobj[idx]), idxs.push_back(idx);
+  vector<pair<double, size_t> > to_remove=m_indicator.leastContributors(lastfront, 1);
+  int id=idxs[to_remove[0].second];
+  iter_swap(parent_yobj.begin()+id, parent_yobj.end()-1);
+  iter_swap(parent_xvar.begin()+id, parent_xvar.end()-1);
+  fronts[Rp[id]].erase(id);
+  fronts[Rp[npop]].erase(npop);
+  fronts[Rp[npop]].insert(id);
+  iter_swap(Rp.begin()+id, Rp.end()-1);
+}
+void replacement(){
+   int lastRank = update_fronts();
+   vector<vector<double> > survivors, candidates, penalized;
+   vector<int> idx_survivors, idx_candidates, idx_penalized;  
+   for(int i = 0; i < parent_yobj.size(); i++){ //first optimization trick
+       if(Rp[i] < Rp.back() && prev_survivor[i])
+	   survivors.push_back(parent_yobj[i]), idx_survivors.push_back(i);
+       else
+	   candidates.push_back(parent_yobj[i]), idx_candidates.push_back(i);
+       prev_survivor[i]=false;
+   }
+   for(int i = 0; i < survivors.size(); i++){
+      for(int j = 0; j < candidates.size(); j++){
+       double dist=distance_var(survivors[i], candidates[j]);
+         if(dist < Dt){
+	     penalized.push_back(survivors[i]);
+	     idx_penalized.push_back(i);
+	 }
+      }
+   } 
+
+
+//   while(survivors.size() < npop && !candidates.empty()){
+//
+//   }
+   
+   for(auto idx:idx_survivors) prev_survivor[idx]=true;
+   vector<double> mdist(npop+1, DBL_MAX);
+      for(int i = 0; i < penalized.size(); i++){
+          for(int j = 0; j < survivors.size(); j++){
+	    mdist[i] = min( mdist[i], distance_var(penalized[i], survivors[j]));
+      }
+   }
+   while(survivors.size() < npop){
+      pair<double, int> maxdcn(-1, -1);
+      for(int i = 0; i < penalized.size(); i++){
+	      maxdcn=max(maxdcn, make_pair(mdist[i], i) );
+      } 
+      survivors.push_back(penalized[maxdcn.second]); 
+      idx_survivors.push_back(idx_penalized[maxdcn.second]);
+      iter_swap(penalized.begin()+maxdcn.second, penalized.end()-1);
+      iter_swap(idx_penalized.begin()+maxdcn.second, idx_penalized.end()-1);
+      penalized.pop_back();
+      idx_penalized.pop_back();
+   }
+}
+
 void eval(vector<double> &yobj, vector<double> &xvar){
    //wfg8(yobj, xvar, param_k);
    //wfg1(yobj, xvar, param_k);
@@ -232,8 +271,8 @@ void evol(){
    //classic_hv_selection();
 }
 void init(){
+   prev_survivor.assign(npop+1, false);
    //for(int i = 0; i < nvar; i++) lb[i]=0.0, ub[i]=(i+1.0)*2.0;
-   bnpfitnessHV.assign(npop+1, -1.0);
    for(int i = 0; i < nvar; i++) lb[i]=0.0, ub[i]=1.0;
    parent_xvar.assign(npop+1, vector<double>(nvar));
    parent_yobj.assign(npop+1, vector<double>(nobj));
