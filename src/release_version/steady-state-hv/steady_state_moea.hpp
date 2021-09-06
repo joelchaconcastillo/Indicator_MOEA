@@ -18,6 +18,7 @@ HypervolumeIndicator m_indicator;
 vector<vector<double> > parent_xvar, parent_yobj;
 vector<unordered_set<int> > fronts;
 vector<int> Np, Rp;
+vector<double> bnpfitnessHV;
 vector<unordered_set<int> > Sp;
 bool operator<(const vector<double> &ind1, const vector<double> &ind2)
 {
@@ -26,6 +27,9 @@ bool operator<(const vector<double> &ind1, const vector<double> &ind2)
         if(ind2[n]<ind1[n]) return false;
     if(ind2==ind1) return false;
     return dominated;
+}
+void updateDt(){
+      Dt = Di - Di * (nfes/ (double)(max_nfes*Df));
 }
 void dominance_info(){
    Sp.assign(npop, unordered_set<int>());
@@ -54,7 +58,7 @@ void dominance_info(){
      rank++;
    }
 }
-void classic_hv_selection(){
+int update_fronts(){
   Rp.back()=0;
   int lastRank=0;
   for(int i = 0; i < npop; i++){
@@ -70,6 +74,10 @@ void classic_hv_selection(){
   }
   fronts[Rp.back()].insert(npop);
   lastRank=max(lastRank, Rp.back());
+  return lastRank;
+}
+void classic_hv_selection(){
+  int lastRank = update_fronts();
   vector<vector<double> > lastfront;
   vector<int> idxs;
   for(auto idx:fronts[lastRank]) lastfront.push_back(parent_yobj[idx]), idxs.push_back(idx);
@@ -82,8 +90,14 @@ void classic_hv_selection(){
   fronts[Rp[npop]].insert(id);
   iter_swap(Rp.begin()+id, Rp.end()-1);
 }
-void updateDt(){
-      Dt = Di - Di * (nfes/ (double)(max_nfes*Df));
+void replacement(){
+  int lastRank = update_dominance();
+  
+  while(){
+  } 
+  
+   
+ 
 }
 double distance_var( vector<double> &xa, vector<double> &xb)
 {
@@ -207,20 +221,19 @@ pair<int, int> binary_torunament(){
   }
   return make_pair(ps[0], ps[1]); 
 }
-void replacement(){
-   
-}
+
 void evol(){
    updateDt();
    pair<int, int> idxs=binary_torunament();
    real_sbx_xoverA(parent_xvar[idxs.first], parent_xvar[idxs.second], parent_xvar.back());
    realmutation(parent_xvar.back());
    eval(parent_yobj.back(), parent_xvar.back()); 
-   //replacement();
-   classic_hv_selection();
+   replacement();
+   //classic_hv_selection();
 }
 void init(){
    //for(int i = 0; i < nvar; i++) lb[i]=0.0, ub[i]=(i+1.0)*2.0;
+   bnpfitnessHV.assign(npop+1, -1.0);
    for(int i = 0; i < nvar; i++) lb[i]=0.0, ub[i]=1.0;
    parent_xvar.assign(npop+1, vector<double>(nvar));
    parent_yobj.assign(npop+1, vector<double>(nobj));
