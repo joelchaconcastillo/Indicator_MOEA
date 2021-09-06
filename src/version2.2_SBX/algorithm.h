@@ -32,7 +32,6 @@ class CMOEAD
 	void update_parameterD();
 	double distance_var( vector<double> &a, vector<double> &b);
         void dominance_information(); 
-        void update_fronts(); 
 	void pick_penalized(unordered_set<int> &penalized, unordered_set<int> &survivors, vector<double> &distances);
 	int max_R2_contribution(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors, unordered_set<int> &survivors_front, unordered_set<int> &penalized, vector<set<pair<double, int> > > &survivors_weight);
 	void dominance_information_remove(int rm_idx);
@@ -214,39 +213,6 @@ void CMOEAD::save_pos(char saveFilename[4024])
    }
    fout.close();
 }
-void CMOEAD::update_fronts()
-{
-   vector<int> current_Np = Np;
-   fronts.assign(1, vector<int>());
-   int rank = 0;
-   for(auto idx:parent_idx)
-   {
-      if(current_Np[idx]==0)
-      {
-        fronts[rank].push_back(idx);
-        Rp[idx] = rank;
-      }
-   }
-   while(true)
-   {
-      vector<int> next_front;
-      for(auto idx:fronts[rank])
-      {
-	for(auto idx_dominated:Sp[idx])
-        {
-	  current_Np[idx_dominated]--;
-          if(current_Np[idx_dominated]  == 0) 
-          {
-	     next_front.push_back(idx_dominated);
-	     Rp[idx_dominated] = rank+1;
-          }
-        }
-      }
-      if(next_front.empty()) break;
-      fronts.push_back(next_front);
-      rank++;
-   }
-}
 void CMOEAD::dominance_information()
 {
    Sp.assign(nPop+nOffspring, unordered_set<int>());
@@ -316,7 +282,7 @@ void CMOEAD::update_lowest_front(unordered_set<int> &candidates, unordered_set<i
         }
         Np[s_idx]--;
   }
-  survivors_front.clear();
+  survivors_front.clear(); //reset survivors front, this is important and is related to the R2-Contribution, each front requires a different computation of R2-indicator
 }
 int CMOEAD::max_R2_contribution(unordered_set<int> &candidates, unordered_set<int> &candidates_front, unordered_set<int> &survivors, unordered_set<int> &survivors_front, unordered_set<int> &penalized, vector<set<pair<double, int> > > &survivors_weight)
 {
