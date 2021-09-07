@@ -80,6 +80,13 @@ struct HypervolumeIndicator {
 		else	
 			return m_algorithm.smallest(front,K);
 	}
+        std::vector<std::pair<double,std::size_t> > leastContributors2( std::vector<vector<double> > const& front, std::size_t K)const{
+	//std::vector<KeyValuePair<double,std::size_t> > leastContributors( std::vector<double> const& front, std::size_t K)const{
+		if(m_reference.size() != 0)
+			return m_algorithm.smallest(front,K,m_reference);
+		else	
+			return m_algorithm.smallest2(front,K);
+	}
 	void init(std::size_t /*numOfObjectives*/, std::size_t /*mu*/, unsigned int& /*rng*/){}
 	
 	/// \brief Sets the reference point. 

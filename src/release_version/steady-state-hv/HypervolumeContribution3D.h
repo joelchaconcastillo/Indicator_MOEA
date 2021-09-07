@@ -269,6 +269,117 @@ private:
 		
 		return contributions;
 	}
+	std::vector<std::pair<double,std::size_t> > allContributions2(std::vector<Point> const& points)const{
+		
+		std::size_t n = points.size();
+		//for every point we have a list of boxes that make up its contribution, L in the paper.
+		//the list stores the boxes ordered by x-value + one additional (empty) list for the added corner points
+		std::vector<std::deque<Box> > boxlists(n+1);
+		//contributions are accumulated here for every point
+		std::vector<std::pair<double,std::size_t> > contributions(n+1,std::make_pair(0.0,1));
+		for(std::size_t i = 0; i != n; ++i){
+			contributions[i].second= points[i].index;
+		}
+		
+		//The tree stores values ordered by x-value and is our xy front.
+		// even though we store 3D points, the third component is not relevant
+		// thus the values are also ordered by y-component.
+		std::multiset<Point> xyFront;
+		//insert points indiating the reference frame, required for setting up the boxes.
+		//The 0 stands for the reference point (0,0) in x-y coordinate
+		//the -inf ensures that the point never becomes dominated
+		double inf = std::numeric_limits<double>::max();//inf can be more costly to work with!
+		xyFront.insert(Point(-inf,0,-inf,n));
+		xyFront.insert(Point(0,-inf,-inf,n));
+		
+		//main loop
+		for(std::size_t i = 0; i != n; ++i){
+			Point const& point = points[i];
+			
+			//position of the point with next smaller x-value in the front
+			auto left = xyFront.lower_bound(point);//gives larger or equal			
+			--left;//first smaller element
+			
+			//check if the new point is dominated
+			if(left->f2 < point.f2)
+				continue;
+			
+			//find the indizes of all points dominated by the new point
+			//and find the position of the next nondominated neighbour
+			//with larger x-value
+			std::vector<std::size_t> dominatedPoints;
+			auto right= left; ++right;
+			while((*right).f2 > point.f2){
+				dominatedPoints.push_back(right->index);
+				++right;
+			}
+			
+			
+			//erase all dominated points from the front
+			xyFront.erase(std::next(left),right);
+			
+			//add point to the front
+			xyFront.insert(Point(point.f1,point.f2,point.f3,i));
+			//reorder dominated points so that the largest x-values are at the front
+			std::reverse(dominatedPoints.begin(),dominatedPoints.end());
+			
+			
+			//cut and remove neighbouring boxes
+			contributions[left->index].first += cutBoxesOnTheLeft(boxlists[left->index],point);
+			contributions[right->index].first += cutBoxesOnTheRight(boxlists[right->index],point,*right);
+			
+			//Remove dominated points with their boxes
+			//and create new boxes for the new point
+			double xright = right->f1;
+			for(std::size_t domIndex:dominatedPoints){
+				Point dominated = points[domIndex];
+				auto& domList = boxlists[domIndex];
+				for(Box& b:domList){
+					b.upper.f3 = point.f3;
+					contributions[domIndex].first += b.volume();
+				}
+				Box leftBox;
+				leftBox.lower.f1 = dominated.f1;
+				leftBox.lower.f2 = point.f2;
+				leftBox.lower.f3 = point.f3;
+				
+				leftBox.upper.f1 = xright;
+				leftBox.upper.f2 = dominated.f2;
+				leftBox.upper.f3 = leftBox.lower.f3;
+				//upper.f3 remains unspecified until the box is completed
+				boxlists[i].push_front(leftBox);
+				
+				xright = dominated.f1;
+			}
+			//Add the new box created by this point
+			Box newBox;
+			newBox.lower.f1 = point.f1;
+			newBox.lower.f2 = point.f2;
+			newBox.lower.f3 = point.f3;
+			newBox.upper.f1 = xright;
+			newBox.upper.f2 = left->f2;
+			newBox.upper.f3 = newBox.lower.f3;
+			boxlists[i].push_front(newBox);
+		}
+		
+		//go through the front and close all remaining boxes
+		for(Point const& p: xyFront){
+			std::size_t index = p.index;
+			for(Box & b: boxlists[index]){
+				b.upper.f3  = 0.0;
+				contributions[index].first +=b.volume();
+			}
+		}
+		
+		//finally sort contributions descending and return it
+		contributions.pop_back();//remove the superfluous last element
+		std::sort(contributions.begin(),contributions.end(), [](std::pair<double, std::size_t> const& lhs, std::pair<double, std::size_t> const& rhs){
+				return lhs.second > rhs.second;
+			});
+
+		
+		return contributions;
+	}
 	
 public:
 	/// \brief Returns the index of the points with smallest contribution as well as their contribution.
@@ -294,6 +405,24 @@ public:
 		result.erase(result.begin()+k,result.end());
 		return result;
 	}
+	std::vector<std::pair<double,std::size_t> > smallest2(std::vector<std::vector<double> > const& points, std::size_t k, std::vector<double> const& ref)const{
+//		SHARK_RUNTIME_CHECK(points.size() >= k, "There must be at least k points in the set");
+		std::vector<Point> front;
+		for(std::size_t i = 0; i != points.size(); ++i){
+			front.emplace_back(points[i][0]-ref[0],points[i][1]-ref[1],points[i][2]-ref[2],i);
+		}
+		std::sort(
+			front.begin(),front.end(),
+			[](Point const& lhs, Point const& rhs){
+				return lhs.f3 < rhs.f3;
+			}
+		);
+		
+		auto result = allContributions2(front);
+		result.erase(result.begin()+k,result.end());
+		return result;
+	}
+
 	
 	/// \brief Returns the index of the points with smallest contribution as well as their contribution.
 	///

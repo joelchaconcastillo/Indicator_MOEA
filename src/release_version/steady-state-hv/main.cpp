@@ -4,8 +4,8 @@ using namespace std;
 int main()
 {
   srand(1);
-  max_nfes=250000;
-  nvar=6;
+  max_nfes=10000;
+  nvar=2;
   nobj=2;
   npop=100;
   Pm=1.0/nvar;

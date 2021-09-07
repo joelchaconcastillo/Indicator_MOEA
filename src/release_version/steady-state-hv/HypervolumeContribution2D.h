@@ -91,6 +91,31 @@ private:
 		bestK.pop_back();//remove the k+1th element
 		return bestK;
 	}
+	template<class Comparator>
+	std::vector<std::pair<double,std::size_t> > bestContributors2( std::vector<Point> const& front, std::size_t k, Comparator comp)const{
+		
+		std::vector<std::pair<double,std::size_t> > bestK(k+1);
+		auto heapStart = bestK.begin();
+		auto heapEnd = bestK.begin();
+		
+		auto pointComp = [&](std::pair<double,std::size_t> const& lhs, std::pair<double,std::size_t> const& rhs){return comp(lhs.second,rhs.second);};
+		
+		//compute the hypervalue contribution for each Pointexcept the endpoints;
+		for(std::size_t i = 1; i < front.size()-1;++i){
+			double contribution = (front[i+1].f1 - front[i].f1)*(front[i-1].f2 - front[i].f2);
+			*heapEnd = std::make_pair(contribution,front[i].index);
+			++heapEnd;
+			std::push_heap(heapStart,heapEnd,pointComp);
+			
+			if(heapEnd == bestK.end()){
+				std::pop_heap(heapStart,heapEnd,pointComp);
+				--heapEnd;
+			}
+		}
+		std::sort_heap(heapStart,heapEnd,pointComp);
+		bestK.pop_back();//remove the k+1th element
+		return bestK;
+	}
 public:
 	/// \brief Returns the index of the points with smallest contribution.
 	///
@@ -109,7 +134,17 @@ public:
 		
 		return bestContributors(front,k,[](double con1, double con2){return con1 < con2;});
 	}
-	
+	std::vector<std::pair<double,std::size_t> > smallest2( std::vector<std::vector<double> > const& points, std::size_t k, std::vector<double> const& referencePoint)const{
+//		SHARK_RUNTIME_CHECK(points.size() >= k, "There must be at least k points in the set");
+		std::vector<Point> front;
+		front.emplace_back(0,referencePoint[1],points.size()+1);//add reference point
+		for(std::size_t i  = 0; i != points.size(); ++i)
+			front.emplace_back(points[i][0],points[i][1],i);
+		front.emplace_back(referencePoint[0],0,points.size()+1);//add reference point
+		std::sort(front.begin()+1,front.end()-1);
+		
+		return bestContributors2(front,k,[](std::size_t con1, std::size_t con2){return con1 > con2;});
+	}
 	/// \brief Returns the index of the points with smallest contribution.
 	///
 	/// As no reference point is given, the edge points can not be computed and are not selected.
@@ -126,7 +161,6 @@ public:
 		
 		return bestContributors(front,k,[](double con1, double con2){return con1 < con2;});
 	}
-	
 	/// \brief Returns the index of the points with largest contribution.
 	///
 	/// \param [in] points The set \f$S\f$ of points from which to select the smallest contributor.

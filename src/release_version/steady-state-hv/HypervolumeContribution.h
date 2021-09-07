@@ -158,6 +158,36 @@ struct HypervolumeContribution {
 	//		return algorithm.smallest(points, k, ref);
 	//	}
 	}
+	std::vector<std::pair<double,std::size_t> > smallest2(std::vector< std::vector<double> >const& points, std::size_t k)const{
+
+	 //	//In the Author's code (an the original paper in section 2.3.1) the reference point is defined as max(obj)+1
+		std::size_t numObjectives = points[0].size(), npoints=points.size();
+		std::vector<double> ref(numObjectives, -DBL_MAX);
+		  for(int j = 0; j < numObjectives; j++)
+	 	  {
+	            for(int i = 0; i <npoints; i++)
+			ref[j] = std::max(ref[j], points[i][j]);
+			ref[j] +=1.0;
+		  }
+		if(numObjectives == 2){
+			HypervolumeContribution2D algorithm;
+			return algorithm.smallest2(points, k, ref);
+		}
+		else if(numObjectives == 3){
+			HypervolumeContribution3D algorithm;
+			return algorithm.smallest2(points, k, ref);
+		}
+	        else{
+		   std::cout << "There is only support for two and three objectives\n";
+		   exit(0);
+ 		}
+	//	else if(m_useApproximation){
+	//		return m_approximationAlgorithm.smallest(points, k, ref);
+	//	}else{
+	//		HypervolumeContributionMD algorithm;
+	//		return algorithm.smallest(points, k, ref);
+	//	}
+	}
 	
 	/// \brief Returns the index of the points with largest contribution as well as their contribution.
 	///
