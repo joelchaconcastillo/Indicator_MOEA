@@ -312,6 +312,8 @@ int CMOEAD::max_HV_contribution(unordered_set<int> &candidates, unordered_set<in
 }
 void CMOEAD::classic_hv_selection()
 {
+  vector<double> r;
+  m_indicator.setReference(r);
   full_dominance_information();
   vector<int> new_idx_parent;
   int rank=0;

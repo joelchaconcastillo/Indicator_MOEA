@@ -129,7 +129,7 @@ struct HypervolumeContribution {
 	 	  {
 	            for(int i = 0; i <npoints; i++)
 			ref[j] = std::max(ref[j], points[i][j]);
-			ref[j] *=1.1;
+		    	ref[j] +=1.0;
 		  }
 		if(numObjectives == 2){
 			HypervolumeContribution2D algorithm;
@@ -160,7 +160,7 @@ struct HypervolumeContribution {
 	 	  {
 	            for(int i = 0; i <npoints; i++)
 			ref[j] = std::max(ref[j], points[i][j]);
-			ref[j] *=1.1;
+		    	ref[j] +=1.0;
 		  }
 
 		if(numObjectives == 2){

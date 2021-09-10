@@ -38,16 +38,15 @@ long    rnd_uni_init;
 
 //------------- Parameters in MOEA/D -------------------------
 
-vector <double> idealpoint;
 double          scale[100];  
 
 
-int		etax    = 20, 	etam    = 50;   // distribution indexes of crossover and mutation
+int		etax    = 2, 	etam    = 50;   // distribution indexes of crossover and mutation
 
 double  realx,  realm,  realb = 0.9;    // crossover, mutation, selection probabilities
 
 double Di, Df, CR, F; // distance available of the hypersphere...
-int nPop, nOffspring, nWeight;
+int nPop, nOffspring;
 long long max_nfes;
 
 #endif

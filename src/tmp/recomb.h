@@ -5,18 +5,19 @@
 #include "individual.h"
 
 /* Routine for real polynomial mutation of an T */
-void realmutation(CIndividual &ind, double rate)
+bool realmutation(CIndividual &ind, double rate)
 {
-    long double rnd, delta1, delta2, mut_pow, deltaq;
-    long double y, yl, yu, val, xy;
-    long double eta_m = etam;
+    double rnd, delta1, delta2, mut_pow, deltaq;
+    double y, yl, yu, val, xy;
+    double eta_m = etam;
 
 	int    id_rnd = int(rnd_uni(&rnd_uni_init)*nvar);
-
+    bool chaged=false;
     for (int j=0; j<nvar; j++)
     {
         if (rnd_uni(&rnd_uni_init)<=rate)
         {
+	    chaged=true;
             y  = ind.x_var[j];
             yl = vlowBound[j];
             yu = vuppBound[j];
@@ -44,20 +45,22 @@ void realmutation(CIndividual &ind, double rate)
             ind.x_var[j] = y;
         }
     }
-    return;
+    return chaged;
 }
 
 
 /* Routine for real variable SBX crossover */
-void real_sbx_xoverA(CIndividual &parent1, CIndividual &parent2, CIndividual &child1, CIndividual &child2)
+bool real_sbx_xoverA(CIndividual &parent1, CIndividual &parent2, CIndividual &child1, CIndividual &child2)
 {
+    bool changed=false;
     double rand;
     double y1, y2, yl, yu;
     double c1, c2;
     double alpha, beta, betaq;
 	double eta_c = etax;
-    if (rnd_uni(&rnd_uni_init) <= 0.9) 
+    if (rnd_uni(&rnd_uni_init) <= realx) 
     {
+	changed=true;
         for (int i=0; i<nvar; i++)
         {
             if (rnd_uni(&rnd_uni_init)<=0.5 )
@@ -138,8 +141,9 @@ void real_sbx_xoverA(CIndividual &parent1, CIndividual &parent2, CIndividual &ch
             child1.x_var[i] = parent1.x_var[i];
             child2.x_var[i] = parent2.x_var[i];
         }
+	changed=false;
     }
-    return;
+    return changed;
 }
 
 void real_sbx_xoverB (CIndividual &parent1, CIndividual &parent2, CIndividual &child)

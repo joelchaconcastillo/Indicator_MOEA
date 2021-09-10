@@ -121,10 +121,10 @@ void CMOEAD::evol_population()
 	pool[child_idx[i++]]=child2;
       }
    }
-//   if(D>0)
+   if(D>0)
      replacement_phase();
-//   else
-//     classic_hv_selection();
+   else
+     classic_hv_selection();
 }
 void CMOEAD::exec_emo(int run)
 {
@@ -295,13 +295,13 @@ int CMOEAD::max_HV_contribution(unordered_set<int> &candidates, unordered_set<in
   for(auto idx:candidates_front)
   {
      all[size]=pool[idx].y_obj; 
-     vector<pair<double, size_t> > res=m_indicator.leastContributors(all, (size_t)all.size());
-     double cur_ctr;
-     for(auto pp:res){
-	if( pp.second==size){
-	   cur_ctr=pp.first; break;
-	}
-     } 
+     vector<pair<double, size_t> > res=m_indicator.lastIdxContributor(all, 1);
+     double cur_ctr=res[0].first;
+//     for(auto pp:res){
+//	if( pp.second==size){
+//	   cur_ctr=pp.first; break;
+//	}
+//     } 
      max_ctr = max(max_ctr, make_pair(cur_ctr, idx));
   }
   survivors_front.insert(max_ctr.second);
@@ -313,6 +313,8 @@ int CMOEAD::max_HV_contribution(unordered_set<int> &candidates, unordered_set<in
 void CMOEAD::classic_hv_selection()
 {
   full_dominance_information();
+  vector<double>r;
+  m_indicator.setReference(r);
   vector<int> new_idx_parent;
   int rank=0;
   while(new_idx_parent.size()+fronts[rank].size() < nPop)

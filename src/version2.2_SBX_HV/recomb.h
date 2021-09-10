@@ -141,6 +141,7 @@ bool real_sbx_xoverA(CIndividual &parent1, CIndividual &parent2, CIndividual &ch
             child1.x_var[i] = parent1.x_var[i];
             child2.x_var[i] = parent2.x_var[i];
         }
+	changed=false;
     }
     return changed;
 }
